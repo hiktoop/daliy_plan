@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>每日任务追踪</title>
+<link rel="stylesheet" href="style.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<!-- JS modules: loaded in dependency order -->
+<script src="app.js"></script>
+<script src="api.js"></script>
+<script src="render.js"></script>
+<script src="actions.js"></script>
+</head>
+<body>
+
+<header class="header">
+  <div class="header-logo">
+    <div class="logo-dot"></div>
+    每日任务
+  </div>
+  <nav class="nav-tabs">
+    <button class="nav-tab active" onclick="switchPage('today')">今日</button>
+    <button class="nav-tab" onclick="switchPage('history')">历史</button>
+    <button class="nav-tab" onclick="switchPage('charts')">图表</button>
+  </nav>
+</header>
+
+<div class="toast" id="toast"></div>
+
+<!-- TODAY -->
+<div class="page active" id="page-today">
+<div class="main">
+  <div class="date-bar">
+    <span class="date-big" id="today-date-label"></span>
+    <span class="date-sub" id="today-weekday"></span>
+    <div class="date-nav">
+      <button id="btn-prev-day" onclick="navDay(-1)" title="前一天">&#8249;</button>
+      <button id="btn-today" onclick="goToday()" title="回今天" style="width:auto;padding:0 8px;font-size:12px;">今天</button>
+      <button id="btn-next-day" onclick="navDay(1)" title="后一天">&#8250;</button>
+    </div>
+  </div>
+
+  <div class="card" id="card-morning">
+    <div class="card-title">
+      <span class="badge badge-morning">早间</span>
+      今日必做事项
+      <span style="margin-left:auto;font-size:11px;color:var(--text-3)" id="morning-hint">最多 10 项</span>
+    </div>
+    <div id="morning-empty-msg" class="empty-state" style="display:none;padding:24px 0;">
+      <div class="empty-icon">📅</div>
+      该日期没有记录
+    </div>
+    <ul class="task-list" id="morning-task-list"></ul>
+    <div class="add-task-row" id="add-task-btn" onclick="addTask()">
+      <span class="add-icon">+</span> 添加事项
+    </div>
+    <div id="morning-note-wrap" style="margin-top:14px;">
+      <div style="font-size:12px;color:var(--text-3);margin-bottom:6px;">今日备注（可选）</div>
+      <textarea class="note-field" id="morning-note" placeholder="写下今天的目标、心情或需要提醒自己的事…" rows="2"></textarea>
+    </div>
+    <div style="margin-top:10px;">
+      <button class="btn-save" id="btn-save-morning" onclick="saveMorning()">保存早间计划</button>
+    </div>
+  </div>
+
+  <div class="card" id="card-evening">
+    <div class="card-title">
+      <span class="badge badge-evening">晚间</span>
+      完成情况复盘
+    </div>
+    <div id="evening-no-plan" style="display:none;">
+      <div class="empty-state">
+        <div class="empty-icon">&#9789;</div>
+        今天还没有早间计划，请先填写必做事项
+      </div>
+    </div>
+    <div id="evening-form">
+      <ul class="task-list" id="evening-task-list"></ul>
+      <div style="margin-top:14px;">
+        <div style="font-size:12px;color:var(--text-3);margin-bottom:6px;">今日总结（可选）</div>
+        <textarea class="note-field" id="evening-note" placeholder="今天完成得怎么样？有什么收获或遗憾？" rows="2"></textarea>
+      </div>
+      <div style="margin-top:10px;">
+        <button class="btn-save" id="btn-save-evening" onclick="saveEvening()">保存复盘</button>
+      </div>
+    </div>
+    <div id="evening-summary" style="display:none;margin-top:4px;">
+      <div class="progress-row" id="summary-metrics"></div>
+      <div id="summary-task-chips" style="margin-top:6px;"></div>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- HISTORY -->
+<div class="page" id="page-history">
+<div class="main">
+  <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;">
+    <span style="font-size:15px;font-weight:500;">历史记录</span>
+    <span style="font-size:12px;color:var(--text-3);margin-left:auto;" id="history-count"></span>
+  </div>
+  <div class="card" style="padding:0;overflow:hidden;">
+    <div style="overflow-x:auto;">
+      <table class="history-table" id="history-table">
+        <thead>
+          <tr>
+            <th style="width:100px;">日期</th>
+            <th>任务</th>
+            <th style="width:70px;text-align:center;">完成率</th>
+            <th style="width:60px;"></th>
+          </tr>
+        </thead>
+        <tbody id="history-tbody"></tbody>
+      </table>
+    </div>
+    <div id="history-empty" class="empty-state" style="display:none;">
+      <div class="empty-icon">&#128203;</div>
+      还没有任何记录，去今日页面开始填写吧
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- CHARTS -->
+<div class="page" id="page-charts">
+<div class="main">
+  <div style="font-size:15px;font-weight:500;margin-bottom:16px;">数据可视化</div>
+  <div class="card">
+    <div class="card-title">近30天完成率趋势</div>
+    <div class="chart-wrap">
+      <canvas id="chart-trend" role="img" aria-label="近30天每日任务完成率折线图"></canvas>
+    </div>
+  </div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+    <div class="card">
+      <div class="card-title">完成状态分布</div>
+      <div style="position:relative;width:100%;height:180px;">
+        <canvas id="chart-status" role="img" aria-label="任务完成状态饼图"></canvas>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">每日任务数量</div>
+      <div style="position:relative;width:100%;height:180px;">
+        <canvas id="chart-count" role="img" aria-label="每日任务数量柱状图"></canvas>
+      </div>
+    </div>
+  </div>
+  <div class="card" style="margin-top:0;">
+    <div class="card-title">综合统计</div>
+    <div class="progress-row" id="global-metrics"></div>
+  </div>
+</div>
+</div>
+
+<script>
+// Boot: render today page on load
+renderToday();
+</script>
+</body>
+</html>
