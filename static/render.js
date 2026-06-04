@@ -60,7 +60,9 @@ async function renderToday() {
     hasNext = savedDates.some(d => d > currentDate);
   } catch(e) {}
   document.getElementById('btn-prev-day').disabled = !hasPrev;
-  document.getElementById('btn-next-day').disabled = isToday || !hasNext;
+  // Next is enabled if not today (allows navigating back to today)
+  // or if there are saved dates ahead
+  document.getElementById('btn-next-day').disabled = isToday;
   document.getElementById('btn-today').disabled = isToday;
 
   let data = await API.getDay(currentDate);

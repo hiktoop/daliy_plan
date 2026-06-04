@@ -19,6 +19,11 @@ function dateFromHash() {
 }
 
 /* ═══════ Date Helpers ═══════ */
+function goToday() {
+  currentDate = todayStr();
+  history.replaceState(null, '', '#' + currentDate);
+  renderToday();
+}
 
 function todayStr() {
   const d = new Date();
@@ -81,8 +86,9 @@ function showToast(msg) {
 
 /* ═══════ Init ═══════ */
 
-currentDate = dateFromHash() || todayStr();
-if (!dateFromHash()) history.replaceState(null, '', '#' + currentDate);
+// Always default to today on page load; hash is only used for browser back/forward
+currentDate = todayStr();
+history.replaceState(null, '', '#' + currentDate);
 
 window.addEventListener('popstate', () => {
   const d = dateFromHash();

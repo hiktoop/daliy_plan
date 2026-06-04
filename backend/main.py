@@ -19,7 +19,7 @@ init_db()
 # Create app
 app = FastAPI(title="Daily Tasks API", version="2.0.0")
 
-# Register routers (routes/stats handles /api/stats and /api/streaks)
+# Register API routers BEFORE static mount
 app.include_router(tasks_router)
 app.include_router(plans_router)
 app.include_router(stats_router)
@@ -30,5 +30,6 @@ async def root():
     return FileResponse(STATIC_DIR / "index.html")
 
 
-# Mount static AFTER routes so /api/* takes priority
-app.mount("/", StaticFiles(directory=str(STATIC_DIR), html=True), name="static")
+# Mount static files at /static
+# /static/app.js → STATIC_DIR/app.js
+app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
