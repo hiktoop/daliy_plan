@@ -9,4 +9,4 @@ echo.
 
 cd /d "%~dp0"
 "C:\Users\19761\.workbuddy\binaries\python\versions\3.13.12\python.exe" -m uvicorn server:app --host 127.0.0.1 --port 8888
-pause
+if not "%1"=="silent" pause
