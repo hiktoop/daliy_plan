@@ -88,13 +88,20 @@ async function renderToday() {
   // Auto-save for new today
   if (isNew && isToday) await API.saveDay(currentDate, data);
 
+  // Sort: habits first, then tasks (mutate in place so DOM sync works)
+  (data.morningTasks||[]).sort((a, b) => {
+    const aH = (a.kind||'task') === 'habit' ? 0 : 1;
+    const bH = (b.kind||'task') === 'habit' ? 0 : 1;
+    return aH - bH;
+  });
+
   // Morning
   const savedMorning = !!data.savedMorning;
   const ul = document.getElementById('morning-task-list');
   ul.innerHTML = '';
   await renderMorningTasks(ul, data, savedMorning);
   document.getElementById('btn-save-morning').style.display = savedMorning ? 'none' : '';
-  document.getElementById('add-task-btn').style.display = savedMorning ? 'none' : ((data.morningTasks||[]).length >= 10 ? 'none' : '');
+  document.getElementById('add-task-area').style.display = savedMorning ? 'none' : ((data.morningTasks||[]).length >= 10 ? 'none' : '');
   document.getElementById('morning-note').readOnly = savedMorning;
   document.getElementById('morning-note').value = data.morningNote || '';
   document.getElementById('morning-hint').textContent = savedMorning ? '已保存 ✓' : `${(data.morningTasks||[]).length}/10 项`;
@@ -129,7 +136,7 @@ async function renderMorningTasks(ul, data, savedMorning) {
 
 function renderMorningItem(ul, task, index, data, streaks, savedMorning) {
   const li = document.createElement('li');
-  li.className = 'task-item';
+  li.className = 'task-item' + ((task.kind||'task') === 'habit' ? ' task-habit' : '');
   li.dataset.id = task.id;
 
   const isToday = currentDate === todayStr();
@@ -235,11 +242,22 @@ function renderEveningForm(data) {
   const ul = document.getElementById('evening-task-list');
   ul.innerHTML = '';
   const realTasks = (data.morningTasks||[]).filter(t => (t.text||'').trim());
-  realTasks.forEach((task, i) => {
+  const habits = realTasks.filter(t => (t.kind||'task') === 'habit');
+  const tasks = realTasks.filter(t => (t.kind||'task') !== 'habit');
+
+  function renderOne(task) {
     const li = document.createElement('li');
-    li.className = 'task-item'; li.dataset.id = task.id;
+    li.className = 'task-item' + ((task.kind||'task') === 'habit' ? ' task-habit' : '');
+    li.dataset.id = task.id;
     const num = document.createElement('div');
-    num.className = 'task-num'; num.textContent = i + 1;
+    num.className = 'task-num';
+    if ((task.kind||'task') === 'habit') {
+      num.textContent = '🌀';
+      num.title = '习惯';
+      num.style.cssText = 'min-width:22px;height:22px;display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0;margin-top:2px;';
+    } else {
+      num.textContent = tasks.indexOf(task) + 1;
+    }
     const content = document.createElement('div');
     content.className = 'task-content';
     const label = document.createElement('div');
@@ -275,36 +293,86 @@ function renderEveningForm(data) {
     content.appendChild(statusGroup);
     li.appendChild(num); li.appendChild(content);
     ul.appendChild(li);
-  });
+  }
+
+  if (habits.length > 0) {
+    const sep = document.createElement('div');
+    sep.className = 'section-label';
+    sep.textContent = '🌀 习惯';
+    ul.appendChild(sep);
+    habits.forEach(t => renderOne(t));
+  }
+  if (tasks.length > 0) {
+    const sep = document.createElement('div');
+    sep.className = 'section-label';
+    sep.textContent = '📋 事项';
+    ul.appendChild(sep);
+    tasks.forEach(t => renderOne(t));
+  }
   document.getElementById('evening-note').value = data.eveningNote || '';
 }
 
 function renderEveningSummary(data) {
   const tasks = (data.morningTasks||[]).filter(t => (t.text||'').trim());
+  const habits = tasks.filter(t => (t.kind||'task') === 'habit');
+  const plainTasks = tasks.filter(t => (t.kind||'task') !== 'habit');
+
   const done = tasks.filter(t => t.status === 'done').length;
   const partial = tasks.filter(t => t.status === 'partial').length;
   const miss = tasks.filter(t => t.status === 'miss').length;
   const total = tasks.length;
   const rate = total > 0 ? Math.round(done/total*100) : 0;
 
+  let habitMetric = '';
+  if (habits.length > 0) {
+    const hDone = habits.filter(t => t.status === 'done').length;
+    const hRate = Math.round(hDone/habits.length*100);
+    habitMetric = `<div class="metric-card"><div class="metric-label">习惯完成率</div><div class="metric-value ${hRate>=80?'green':hRate>=50?'warn':'red'}">${hRate}%</div></div>`;
+  }
+
   document.getElementById('summary-metrics').innerHTML = `
     <div class="metric-card"><div class="metric-label">完成率</div><div class="metric-value ${rate>=80?'green':rate>=50?'warn':'red'}">${rate}%</div></div>
     <div class="metric-card"><div class="metric-label">已完成</div><div class="metric-value green">${done}</div></div>
     <div class="metric-card"><div class="metric-label">部分完成</div><div class="metric-value warn">${partial}</div></div>
     <div class="metric-card"><div class="metric-label">未完成</div><div class="metric-value red">${miss}</div></div>
+    ${habitMetric}
   `;
 
   const chipsEl = document.getElementById('summary-task-chips');
-  chipsEl.innerHTML = '<div style="font-size:12px;color:var(--text-3);margin-bottom:6px;">任务详情</div>';
-  const chipRow = document.createElement('div');
-  chipRow.className = 'chip-row';
-  tasks.forEach(t => {
-    const chip = document.createElement('span');
-    chip.className = 'chip chip-' + (t.status || 'none');
-    chip.textContent = (t.text||'').length > 16 ? t.text.slice(0,15)+'…' : t.text;
-    chip.title = t.text; chipRow.appendChild(chip);
-  });
-  chipsEl.appendChild(chipRow);
+  chipsEl.innerHTML = '';
+
+  if (habits.length > 0) {
+    const hLabel = document.createElement('div');
+    hLabel.style.cssText = 'font-size:11px;color:var(--text-3);margin:8px 0 4px;';
+    hLabel.textContent = '🌀 习惯';
+    chipsEl.appendChild(hLabel);
+    const hRow = document.createElement('div');
+    hRow.className = 'chip-row';
+    habits.forEach(t => {
+      const chip = document.createElement('span');
+      chip.className = 'chip chip-' + (t.status || 'none');
+      chip.textContent = (t.text||'').length > 16 ? t.text.slice(0,15)+'…' : t.text;
+      chip.title = t.text; hRow.appendChild(chip);
+    });
+    chipsEl.appendChild(hRow);
+  }
+
+  if (plainTasks.length > 0) {
+    const tLabel = document.createElement('div');
+    tLabel.style.cssText = 'font-size:11px;color:var(--text-3);margin:8px 0 4px;';
+    tLabel.textContent = '📋 事项';
+    chipsEl.appendChild(tLabel);
+    const tRow = document.createElement('div');
+    tRow.className = 'chip-row';
+    plainTasks.forEach(t => {
+      const chip = document.createElement('span');
+      chip.className = 'chip chip-' + (t.status || 'none');
+      chip.textContent = (t.text||'').length > 16 ? t.text.slice(0,15)+'…' : t.text;
+      chip.title = t.text; tRow.appendChild(chip);
+    });
+    chipsEl.appendChild(tRow);
+  }
+
   if (data.eveningNote) {
     const note = document.createElement('div');
     note.style.cssText = 'margin-top:10px;font-size:13px;color:var(--text-2);border-left:2px solid var(--border-md);padding-left:10px;';
@@ -313,10 +381,10 @@ function renderEveningSummary(data) {
 }
 
 function updateAddBtn(count) {
-  const btn = document.getElementById('add-task-btn');
-  if (btn) btn.style.display = count >= 10 ? 'none' : '';
+  const area = document.getElementById('add-task-area');
+  if (area) area.style.display = count >= 10 ? 'none' : '';
   const hint = document.getElementById('morning-hint');
-  if (hint) hint.textContent = `${count}/10 项`;
+  if (hint) hint.textContent = count >= 10 ? '最多 10 项' : `${count}/10 项`;
 }
 
 /* ─── History Page ─── */

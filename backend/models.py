@@ -6,6 +6,7 @@ from pydantic import BaseModel
 class TaskItem(BaseModel):
     id: str
     text: str = ""
+    kind: str = "task"   # "task" | "habit"
     status: str | None = None
     eveningNote: str = ""
     plan: str | None = None

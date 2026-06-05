@@ -38,12 +38,14 @@ async function setPlan(taskId, planType) {
 
 /* ─── Add / Delete tasks ─── */
 
-async function addTask() {
+async function addTask(kind) {
+  // kind: 'task' | 'habit', default 'task'
+  kind = kind || 'task';
   let d = await API.getDay(currentDate);
   if (d.savedMorning) { showToast('早间计划已保存，不可添加事项'); return; }
   if ((d.morningTasks||[]).length >= 10) return;
   syncInputsToDay(d);
-  d.morningTasks.push({ id: uid(), text: '', status: null, eveningNote: '', plan: null });
+  d.morningTasks.push({ id: uid(), text: '', kind: kind, status: null, eveningNote: '', plan: null });
   await API.saveDay(currentDate, d);
   await renderToday();
 }

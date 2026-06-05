@@ -51,10 +51,10 @@ def get_day(date_str: str):
 
     # Not in DB — build skeleton with active plan snapshots
     plans = get_active_plans(date_str)
-    tasks = [{"id": _uid(), "text": "", "status": None, "eveningNote": "", "plan": None}]
+    tasks = [{"id": _uid(), "text": "", "kind": "task", "status": None, "eveningNote": "", "plan": None}]
     for p in plans:
         tasks.insert(0, {
-            "id": _uid(), "text": p["text"], "status": None, "eveningNote": "",
+            "id": _uid(), "text": p["text"], "kind": "habit", "status": None, "eveningNote": "",
             "plan": p["plan_type"], "planId": p["id"], "planStart": p.get("plan_start"),
         })
     return {
