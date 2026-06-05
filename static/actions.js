@@ -168,9 +168,27 @@ async function pomoStart() {
   pomoSetButtons(true, false);
   pomoUpdateDisplay();
 
+  const isCountdown = pomoState.mode === 'countdown';
+  const targetMs = isCountdown ? pomoState.targetSec * 1000 : null;
+
   pomoState.timerInterval = setInterval(() => {
     if (!pomoState.paused) {
       pomoState.elapsed = Math.floor((Date.now()/1000) - pomoState.startTs);
+
+      // Countdown: auto-stop when target reached
+      if (isCountdown && pomoState.elapsed >= pomoState.targetSec) {
+        pomoState.elapsed = pomoState.targetSec;
+        pomoUpdateDisplay();
+        clearInterval(pomoState.timerInterval);
+        pomoState.running = false;
+        pomoState.sessionId = null;
+        pomoState.startTs = null;
+        pomoSetButtons(false, false);
+        showToast('⏱ 倒计时结束！专注完成 ✓');
+        pomoRefreshStats();
+        return;
+      }
+
       pomoUpdateDisplay();
     }
   }, 250);

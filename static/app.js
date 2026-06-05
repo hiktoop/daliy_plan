@@ -22,7 +22,9 @@ let pomoState = {
   startTs: null,
   timerInterval: null,
   taskId: null,
-  taskText: ''
+  taskText: '',
+  mode: 'stopwatch',  // 'stopwatch' | 'countdown'
+  targetSec: 1500     // countdown target (default 25 min)
 };
 
 function dateFromHash() {
