@@ -522,3 +522,115 @@ async function renderCharts() {
 function destroyChart(id) {
   if (charts[id]) { charts[id].destroy(); delete charts[id]; }
 }
+
+/* ─── Pomodoro Page ─── */
+
+async function renderPomodoro() {
+  // Load task list for selector
+  let tasks = [];
+  try {
+    const d = await API.getDay(todayStr());
+    tasks = (d.morningTasks||[]).filter(t => (t.text||'').trim());
+  } catch(e) {}
+
+  const sel = document.getElementById('pomo-task-select');
+  const currentVal = sel.value;
+  sel.innerHTML = '<option value="">-- 不关联任务 --</option>';
+  tasks.forEach(t => {
+    const opt = document.createElement('option');
+    opt.value = t.id;
+    opt.textContent = t.text;
+    if (t.id === currentVal) opt.selected = true;
+    sel.appendChild(opt);
+  });
+
+  // Update task display
+  if (pomoState.taskId) {
+    const t = tasks.find(x => x.id === pomoState.taskId);
+    if (t) {
+      document.getElementById('pomo-active-task').style.display = '';
+      document.getElementById('pomo-task-name').textContent = t.text;
+    } else {
+      document.getElementById('pomo-active-task').style.display = 'none';
+    }
+  } else {
+    document.getElementById('pomo-active-task').style.display = 'none';
+  }
+
+  // Refresh daily stats and history
+  await pomoRefreshStats();
+}
+
+async function pomoRefreshStats() {
+  const today = todayStr();
+  let sessions = [], totalSec = 0;
+  try {
+    const res = await fetch('/api/focus/' + today).then(r => r.json());
+    sessions = res.sessions || [];
+    totalSec = res.total_seconds || 0;
+  } catch(e) {}
+
+  const min = Math.floor(totalSec / 60);
+  const sec = totalSec % 60;
+  document.getElementById('pomo-total-time').textContent = min + ' 分' + (sec > 0 ? ' ' + sec + '秒' : '');
+  document.getElementById('pomo-session-count').textContent = sessions.length;
+
+  // History list
+  const list = document.getElementById('pomo-history-list');
+  if (sessions.length === 0) {
+    list.innerHTML = '<div class="empty-state"><div class="empty-icon">⏱</div>还没有专注记录，开始你的第一次计时吧</div>';
+  } else {
+    list.innerHTML = sessions.map(s => {
+      const d = Math.floor(s.duration / 60);
+      const sec = s.duration % 60;
+      const timeStr = d + '分' + sec + '秒';
+      const startTime = new Date(s.start_ts * 1000).toLocaleTimeString('zh-CN', {hour:'2-digit',minute:'2-digit'});
+      const taskLabel = s.task_text ? ' — ' + s.task_text : '';
+      const noteStr = s.note ? '<div style="font-size:11px;color:var(--text-3);margin-top:2px;">' + s.note + '</div>' : '';
+      return `<div style="display:flex;align-items:flex-start;justify-content:space-between;padding:9px 0;border-bottom:0.5px solid var(--border);">
+        <div>
+          <div style="font-size:13px;color:var(--text);">${startTime}${taskLabel}</div>
+          ${noteStr}
+        </div>
+        <div style="font-size:14px;font-weight:500;color:var(--accent-text);white-space:nowrap;">${timeStr}</div>
+      </div>`;
+    }).join('');
+  }
+}
+
+function pomoSelectTask() {
+  const sel = document.getElementById('pomo-task-select');
+  pomoState.taskId = sel.value || null;
+  pomoState.taskText = sel.selectedOptions[0]?.textContent || '';
+  if (pomoState.taskId) {
+    document.getElementById('pomo-active-task').style.display = '';
+    document.getElementById('pomo-task-name').textContent = pomoState.taskText;
+  } else {
+    document.getElementById('pomo-active-task').style.display = 'none';
+  }
+}
+
+/* Timer display helpers */
+function pomoUpdateDisplay() {
+  const sec = pomoState.elapsed;
+  const m = Math.floor(sec / 60);
+  const s = sec % 60;
+  document.getElementById('pomo-time').textContent =
+    String(m).padStart(2,'0') + ':' + String(s).padStart(2,'0');
+
+  // SVG ring progress — full circle is 60 min = 3600 sec
+  const maxSec = 3600;
+  const fraction = Math.min(sec / maxSec, 1);
+  const circumference = 565.5; // 2*PI*90
+  document.getElementById('pomo-progress').style.strokeDashoffset =
+    circumference * (1 - fraction);
+}
+
+function pomoSetButtons(running, paused) {
+  document.getElementById('pomo-btn-start').style.display = (!running && !paused) ? '' : 'none';
+  document.getElementById('pomo-btn-pause').style.display = (running && !paused) ? '' : 'none';
+  document.getElementById('pomo-btn-stop').style.display = (running || paused) ? '' : 'none';
+  document.getElementById('pomo-btn-reset').style.display = paused ? '' : 'none';
+  document.getElementById('pomo-label').textContent =
+    running ? (paused ? '已暂停' : '专注中...') : '准备开始';
+}

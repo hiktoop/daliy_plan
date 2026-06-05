@@ -13,6 +13,18 @@ const PLAN_META = {
 let currentDate = null;
 let charts = {};
 
+/* ═══════ Pomodoro State ═══════ */
+let pomoState = {
+  running: false,
+  paused: false,
+  sessionId: null,
+  elapsed: 0,         // seconds
+  startTs: null,
+  timerInterval: null,
+  taskId: null,
+  taskText: ''
+};
+
 function dateFromHash() {
   const h = location.hash.replace(/^#/, '');
   return /^\d{4}-\d{2}-\d{2}$/.test(h) ? h : null;
@@ -64,7 +76,7 @@ async function switchPage(name) {
   document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
   document.getElementById('page-'+name).classList.add('active');
   const tabs = document.querySelectorAll('.nav-tab');
-  const map = { today: 0, history: 1, charts: 2 };
+  const map = { today: 0, history: 1, charts: 2, pomodoro: 3 };
   if (map[name] !== undefined) tabs[map[name]].classList.add('active');
   if (name === 'history') await renderHistory();
   if (name === 'charts') await renderCharts();
@@ -72,6 +84,7 @@ async function switchPage(name) {
     history.pushState(null, '', '#' + currentDate);
     await renderToday();
   }
+  if (name === 'pomodoro') await renderPomodoro();
 }
 
 /* ═══════ Toast ═══════ */

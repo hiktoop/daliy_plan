@@ -9,6 +9,7 @@ from backend.db import init_db
 from backend.routes.tasks import router as tasks_router
 from backend.routes.plans import router as plans_router
 from backend.routes.stats import router as stats_router
+from backend.routes.pomodoro import router as pomodoro_router
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 STATIC_DIR = BASE_DIR / "static"
@@ -23,6 +24,7 @@ app = FastAPI(title="Daily Tasks API", version="2.0.0")
 app.include_router(tasks_router)
 app.include_router(plans_router)
 app.include_router(stats_router)
+app.include_router(pomodoro_router)
 
 
 @app.get("/")

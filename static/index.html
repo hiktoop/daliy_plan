@@ -4,13 +4,13 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>每日任务追踪</title>
-<link rel="stylesheet" href="/static/style.css?v=5">
+<link rel="stylesheet" href="/static/style.css?v=6">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
 <!-- JS modules: loaded in dependency order -->
-<script src="/static/app.js?v=5"></script>
-<script src="/static/api.js?v=5"></script>
-<script src="/static/render.js?v=5"></script>
-<script src="/static/actions.js?v=5"></script>
+<script src="/static/app.js?v=6"></script>
+<script src="/static/api.js?v=6"></script>
+<script src="/static/render.js?v=6"></script>
+<script src="/static/actions.js?v=6"></script>
 </head>
 <body>
 
@@ -23,6 +23,7 @@
     <button class="nav-tab active" onclick="switchPage('today')">今日</button>
     <button class="nav-tab" onclick="switchPage('history')">历史</button>
     <button class="nav-tab" onclick="switchPage('charts')">图表</button>
+    <button class="nav-tab" onclick="switchPage('pomodoro')">专注</button>
   </nav>
 </header>
 
@@ -118,6 +119,60 @@
     <div id="history-empty" class="empty-state" style="display:none;">
       <div class="empty-icon">&#128203;</div>
       还没有任何记录，去今日页面开始填写吧
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- POMODORO -->
+<div class="page" id="page-pomodoro">
+<div class="main pomodoro-main">
+  <!-- Timer ring -->
+  <div class="pomodoro-ring-wrap">
+    <svg class="pomodoro-ring" viewBox="0 0 200 200" id="pomo-svg">
+      <circle cx="100" cy="100" r="90" fill="none" stroke="var(--border)" stroke-width="6"/>
+      <circle cx="100" cy="100" r="90" fill="none" stroke="var(--accent)" stroke-width="6"
+        stroke-linecap="round" stroke-dasharray="565.5" stroke-dashoffset="0"
+        id="pomo-progress" transform="rotate(-90 100 100)"/>
+    </svg>
+    <div class="pomodoro-time" id="pomo-time">00:00</div>
+    <div class="pomodoro-label" id="pomo-label">准备开始</div>
+  </div>
+
+  <!-- Controls -->
+  <div class="pomodoro-controls">
+    <button class="pomo-btn pomo-start" id="pomo-btn-start" onclick="pomoStart()">▶ 开始</button>
+    <button class="pomo-btn pomo-pause" id="pomo-btn-pause" onclick="pomoPause()" style="display:none;">⏸ 暂停</button>
+    <button class="pomo-btn pomo-stop" id="pomo-btn-stop" onclick="pomoStop()" style="display:none;">⏹ 完成</button>
+    <button class="pomo-btn pomo-reset" id="pomo-btn-reset" onclick="pomoReset()" style="display:none;">↺ 重置</button>
+  </div>
+
+  <!-- Task selector -->
+  <div class="card" style="margin-top:16px;">
+    <div class="card-title">关联任务（可选）</div>
+    <select class="pomo-select" id="pomo-task-select" onchange="pomoSelectTask()">
+      <option value="">-- 不关联任务 --</option>
+    </select>
+    <div id="pomo-active-task" style="display:none;margin-top:10px;font-size:13px;color:var(--text-2);">
+      当前任务：<span id="pomo-task-name" style="font-weight:500;color:var(--text);"></span>
+    </div>
+  </div>
+
+  <!-- Daily summary -->
+  <div class="card" style="margin-top:16px;">
+    <div class="card-title">今日专注</div>
+    <div class="progress-row" id="pomo-daily-metrics">
+      <div class="metric-card"><div class="metric-label">总时长</div><div class="metric-value green" id="pomo-total-time">0 分钟</div></div>
+      <div class="metric-card"><div class="metric-label">专注次数</div><div class="metric-value" id="pomo-session-count">0</div></div>
+      <div class="metric-card"><div class="metric-label">当前连续</div><div class="metric-value" id="pomo-streak">—</div></div>
+    </div>
+  </div>
+
+  <!-- Session history -->
+  <div class="card" style="margin-top:16px;">
+    <div class="card-title">今日记录</div>
+    <div id="pomo-history-list">
+      <div class="empty-state"><div class="empty-icon">⏱</div>还没有专注记录，开始你的第一次计时吧</div>
     </div>
   </div>
 </div>

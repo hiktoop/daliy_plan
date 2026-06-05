@@ -145,3 +145,93 @@ async function goToday() {
   history.pushState(null, '', '#' + currentDate);
   await renderToday();
 }
+
+/* ─── Pomodoro Actions ─── */
+
+async function pomoStart() {
+  pomoState.taskId = document.getElementById('pomo-task-select').value || null;
+  pomoState.taskText = document.getElementById('pomo-task-select').selectedOptions[0]?.textContent || '';
+
+  // Create session on backend
+  const res = await fetch('/api/focus/start', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({task_id: pomoState.taskId, task_text: pomoState.taskText})
+  }).then(r => r.json());
+
+  pomoState.sessionId = res.id;
+  pomoState.startTs = res.start_ts;
+  pomoState.elapsed = 0;
+  pomoState.running = true;
+  pomoState.paused = false;
+
+  pomoSetButtons(true, false);
+  pomoUpdateDisplay();
+
+  pomoState.timerInterval = setInterval(() => {
+    if (!pomoState.paused) {
+      pomoState.elapsed = Math.floor((Date.now()/1000) - pomoState.startTs);
+      pomoUpdateDisplay();
+    }
+  }, 250);
+
+  // Show active task
+  if (pomoState.taskId) {
+    document.getElementById('pomo-active-task').style.display = '';
+    document.getElementById('pomo-task-name').textContent = pomoState.taskText;
+  }
+}
+
+async function pomoPause() {
+  if (!pomoState.running) return;
+  pomoState.paused = !pomoState.paused;
+  pomoSetButtons(true, pomoState.paused);
+}
+
+async function pomoStop() {
+  if (!pomoState.sessionId) return;
+
+  // Stop timer
+  clearInterval(pomoState.timerInterval);
+  pomoState.elapsed = Math.floor((Date.now()/1000) - pomoState.startTs);
+  pomoUpdateDisplay();
+
+  // Save to backend
+  await fetch('/api/focus/' + pomoState.sessionId + '/stop', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({note: ''})
+  });
+
+  // Reset state
+  pomoState.running = false;
+  pomoState.paused = false;
+  pomoState.sessionId = null;
+  pomoState.startTs = null;
+  pomoState.elapsed = 0;
+
+  pomoSetButtons(false, false);
+  pomoUpdateDisplay();
+
+  showToast('专注记录已保存 ✓');
+  await pomoRefreshStats();
+}
+
+async function pomoReset() {
+  clearInterval(pomoState.timerInterval);
+
+  // Delete session if created
+  if (pomoState.sessionId) {
+    await fetch('/api/focus/' + pomoState.sessionId, {method: 'DELETE'});
+  }
+
+  pomoState.running = false;
+  pomoState.paused = false;
+  pomoState.sessionId = null;
+  pomoState.startTs = null;
+  pomoState.elapsed = 0;
+
+  pomoSetButtons(false, false);
+  pomoUpdateDisplay();
+  document.getElementById('pomo-active-task').style.display = 'none';
+}

@@ -58,6 +58,17 @@ def init_db():
                 last_done_date  TEXT,
                 FOREIGN KEY (plan_id) REFERENCES plans(id) ON DELETE CASCADE
             );
+
+            CREATE TABLE IF NOT EXISTS focus_sessions (
+                id          TEXT PRIMARY KEY,
+                date        TEXT NOT NULL,
+                task_id     TEXT,
+                task_text   TEXT DEFAULT '',
+                start_ts    REAL NOT NULL,
+                end_ts      REAL,
+                duration    INTEGER DEFAULT 0,
+                note        TEXT DEFAULT ''
+            );
         """)
         # Migration: add status column if missing
         try:

@@ -38,3 +38,23 @@ class PlanItem(BaseModel):
     plan: str  # 'long', 'week', 'month'
     planStart: str | None = None
     planEnd: str | None = None
+
+
+class FocusStartPayload(BaseModel):
+    task_id: str | None = None
+    task_text: str = ""
+
+
+class FocusStopPayload(BaseModel):
+    note: str = ""
+
+
+class FocusSession(BaseModel):
+    id: str
+    date: str
+    task_id: str | None = None
+    task_text: str = ""
+    start_ts: float
+    end_ts: float | None = None
+    duration: int = 0
+    note: str = ""
