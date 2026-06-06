@@ -473,13 +473,14 @@ async function renderCharts() {
       const dn = ts.filter(t => t.status === 'done').length;
       return ts.length > 0 ? Math.round(dn/ts.length*100) : 0;
     });
+    const pointRadius = reviewed.length <= 2 ? 8 : (reviewed.length <= 7 ? 6 : 4);
     charts['chart-trend'] = new Chart(document.getElementById('chart-trend'), {
       type: 'line',
-      data: { labels, datasets: [{ label: '完成率', data: rates, borderColor: '#3b6d11', backgroundColor: 'rgba(59,109,17,0.08)', fill: true, tension: 0.35, pointRadius: 4, pointBackgroundColor: '#3b6d11', borderWidth: 2 }] },
+      data: { labels, datasets: [{ label: '完成率', data: rates, borderColor: '#3b6d11', backgroundColor: 'rgba(59,109,17,0.08)', fill: true, tension: 0.35, pointRadius: pointRadius, pointBackgroundColor: '#3b6d11', pointBorderColor: '#fff', pointBorderWidth: 2, pointHoverRadius: pointRadius + 2, borderWidth: 2.5 }] },
       options: {
         responsive: true, maintainAspectRatio: false,
-        plugins: { legend: { display: false } },
-        scales: { y: { min: 0, max: 100, ticks: { callback: v => v+'%', color: '#9a9a94', font: { size: 11 } }, grid: { color: 'rgba(0,0,0,0.05)' } }, x: { ticks: { color: '#9a9a94', font: { size: 10 }, maxRotation: 45, autoSkip: true, maxTicksLimit: 15 }, grid: { display: false } } }
+        plugins: { legend: { display: false }, tooltip: { callbacks: { label: ctx => '完成率: ' + ctx.parsed.y + '%' } } },
+        scales: { y: { min: 0, max: 100, ticks: { callback: v => v+'%', color: '#9a9a94', font: { size: 11 } }, grid: { color: 'rgba(0,0,0,0.05)' } }, x: { ticks: { color: '#9a9a94', font: { size: 10 }, maxRotation: 45, autoSkip: true, maxTicksLimit: 12 }, grid: { display: false } } }
       }
     });
   }
@@ -513,8 +514,8 @@ async function renderCharts() {
     const countData = reviewed.map(d => (d.morningTasks||[]).filter(t => (t.text||'').trim()).length);
     charts['chart-count'] = new Chart(document.getElementById('chart-count'), {
       type: 'bar',
-      data: { labels: countLabels, datasets: [{ label: '任务数', data: countData, backgroundColor: '#b5d4f4', borderColor: '#185fa5', borderWidth: 1, borderRadius: 3 }] },
-      options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, ticks: { stepSize: 1, color: '#9a9a94', font: { size: 11 } }, grid: { color: 'rgba(0,0,0,0.05)' } }, x: { ticks: { color: '#9a9a94', font: { size: 10 }, maxRotation: 45, autoSkip: true, maxTicksLimit: 12 }, grid: { display: false } } } }
+      data: { labels: countLabels, datasets: [{ label: '任务数', data: countData, backgroundColor: '#b5d4f4', borderColor: '#185fa5', borderWidth: 1, borderRadius: 3, maxBarThickness: 32, barPercentage: 0.7 }] },
+      options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, tooltip: { callbacks: { label: ctx => '任务数: ' + ctx.parsed.y } } }, scales: { y: { beginAtZero: true, ticks: { stepSize: 1, color: '#9a9a94', font: { size: 11 } }, grid: { color: 'rgba(0,0,0,0.05)' } }, x: { ticks: { color: '#9a9a94', font: { size: 10 }, maxRotation: 45, autoSkip: true, maxTicksLimit: 12 }, grid: { display: false } } } }
     });
   }
 }
