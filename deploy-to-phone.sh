@@ -38,7 +38,7 @@ check_ssh() {
 
 # ── 函数: 检查手机是否在线，服务是否运行 ──
 check_service() {
-    ssh "$SSH_HOST" "pgrep -f 'uvicorn backend.main:app' > /dev/null 2>&1" 2>/dev/null
+    ssh "$SSH_HOST" "pgrep -f 'uvicorn server:app' > /dev/null 2>&1" 2>/dev/null
 }
 
 # ── 函数: 安装手机端依赖 ──
@@ -91,7 +91,8 @@ start_service() {
         mkdir -p data
 
         # 后台启动 uvicorn (系统 Python，无 venv)
-        nohup python3 -m uvicorn backend.main:app \
+        # server:app 等价于 backend.main:app，更短
+        nohup python3 -m uvicorn server:app \
             --host 0.0.0.0 \
             --port $PORT \
             > /dev/null 2>&1 &
@@ -99,7 +100,7 @@ start_service() {
         # 等待启动
         sleep 2
 
-        if pgrep -f 'uvicorn backend.main:app' > /dev/null; then
+        if pgrep -f 'uvicorn server:app' > /dev/null; then
             echo 'SERVICE_STARTED'
         else
             echo 'SERVICE_FAILED'
@@ -122,11 +123,11 @@ start_service() {
 stop_service() {
     info "停止手机端服务..."
     # pkill 在找不到进程时会返回非零，所以 || true
-    ssh "$SSH_HOST" "pkill -f 'uvicorn backend.main:app' 2>/dev/null; true"
+    ssh "$SSH_HOST" "pkill -f 'uvicorn server:app' 2>/dev/null; true"
     sleep 1
     if check_service; then
         warn "尝试强制终止..."
-        ssh "$SSH_HOST" "pkill -9 -f 'uvicorn backend.main:app' 2>/dev/null; true"
+        ssh "$SSH_HOST" "pkill -9 -f 'uvicorn server:app' 2>/dev/null; true"
         sleep 1
     fi
     if ! check_service; then
@@ -141,7 +142,7 @@ show_status() {
     echo ""
     echo -e "${CYAN}══════ 手机端服务状态 ══════${NC}"
     if check_service; then
-        local pid=$(ssh "$SSH_HOST" "pgrep -f 'uvicorn backend.main:app'" 2>/dev/null)
+        local pid=$(ssh "$SSH_HOST" "pgrep -f 'uvicorn server:app'" 2>/dev/null)
         echo -e "  状态:   ${GREEN}运行中${NC} (PID: $pid)"
         echo -e "  地址:   ${GREEN}http://${PHONE_IP}:${PORT}${NC}"
 
