@@ -498,6 +498,45 @@ body {
   font-weight: 500;
 }
 
+/* ─── Review Section (Today page) ─── */
+
+.review-item {
+  display: flex; align-items: center; gap: 8px;
+  padding: 8px 12px; margin-bottom: 4px; border-radius: 8px;
+  background: #FFF8E1; border: 1px solid #F0D060;
+  cursor: pointer; transition: background 0.12s;
+}
+.review-item:hover { background: #FFF3C8; }
+.review-tag {
+  font-size: 10px; font-weight: 600;
+  background: #F0A030; color: #fff;
+  padding: 2px 6px; border-radius: 4px;
+  white-space: nowrap;
+}
+.review-text {
+  flex: 1; font-size: 13px; color: #5c3000;
+}
+.review-round {
+  font-size: 10px; color: #b08040; white-space: nowrap;
+}
+
+/* ─── Knowledge Page ─── */
+
+.knowledge-item {
+  padding: 12px 16px; border-bottom: 1px solid var(--border);
+  transition: background 0.1s;
+}
+.knowledge-item:last-child { border-bottom: none; }
+.knowledge-item:hover { background: var(--surface2); }
+.knowledge-item.graduated { opacity: 0.6; }
+.knowledge-item-row {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 12px; flex-wrap: wrap;
+}
+.knowledge-text { font-size: 14px; font-weight: 500; flex: 1; min-width: 160px; }
+.knowledge-item-actions { display: flex; align-items: center; gap: 6px; white-space: nowrap; }
+.knowledge-round { font-size: 11px; color: var(--text-3); }
+
 .habit-del-btn {
   position: absolute;
   top: 6px;

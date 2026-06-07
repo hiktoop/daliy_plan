@@ -91,6 +91,17 @@ def init_db():
                 FOREIGN KEY (habit_id) REFERENCES habits(id) ON DELETE CASCADE,
                 UNIQUE(habit_id, date)
             );
+
+            CREATE TABLE IF NOT EXISTS reviews (
+                id           TEXT PRIMARY KEY,
+                task_text    TEXT NOT NULL,
+                review_round INTEGER DEFAULT 0,
+                next_review  TEXT NOT NULL,
+                last_review  TEXT,
+                status       TEXT DEFAULT 'active',
+                created_at   REAL,
+                updated_at   REAL
+            );
         """)
         # Migration: add status column if missing
         try:

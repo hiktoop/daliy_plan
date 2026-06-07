@@ -98,5 +98,22 @@ const API = {
   },
   async getHeatmap(days) {
     return this._fetch('/api/habits/heatmap?days=' + (days||84));
+  },
+
+  // ── Reviews (Ebbinghaus) ──
+  async createReview(taskText) {
+    return this._fetch('/api/tasks/review', {
+      method: 'POST', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ task_text: taskText })
+    });
+  },
+  async getDueReviews(dateStr) {
+    return this._fetch('/api/tasks/reviews/due?date_str=' + encodeURIComponent(dateStr || todayStr()));
+  },
+  async markReviewDone(reviewId) {
+    return this._fetch('/api/tasks/review/' + reviewId + '/done', { method: 'POST' });
+  },
+  async deleteReview(reviewId) {
+    return this._fetch('/api/tasks/review/' + reviewId, { method: 'DELETE' });
   }
 };

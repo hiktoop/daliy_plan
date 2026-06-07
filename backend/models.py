@@ -12,6 +12,23 @@ class TaskItem(BaseModel):
     plan: str | None = None
     planId: str | None = None
     planStart: str | None = None
+    # 艾宾浩斯复习字段
+    itemType: str | None = None   # None/"knowledge" — None 兼容旧数据
+    reviewId: str | None = None   # 关联 reviews 表
+
+
+class ReviewItem(BaseModel):
+    id: str
+    task_text: str
+    review_round: int = 0
+    next_review: str   # YYYY-MM-DD
+    last_review: str | None = None
+    status: str = "active"  # "active" | "graduated" | "deleted"
+
+
+class ReviewCreate(BaseModel):
+    task_text: str
+    start_date: str | None = None  # 首次复习日期，默认明天
 
 
 class DayData(BaseModel):

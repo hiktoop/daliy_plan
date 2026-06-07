@@ -39,13 +39,23 @@ async function setPlan(taskId, planType) {
 /* ─── Add / Delete tasks ─── */
 
 async function addTask(kind) {
-  // kind: 'task' | 'habit', default 'task'
+  // kind: 'task' | 'habit' | 'knowledge', default 'task'
   kind = kind || 'task';
   let d = await API.getDay(currentDate);
   if (d.savedMorning) { showToast('早间计划已保存，不可添加事项'); return; }
   if ((d.morningTasks||[]).length >= 10) return;
   syncInputsToDay(d);
-  d.morningTasks.push({ id: uid(), text: '', kind: kind, status: null, eveningNote: '', plan: null });
+  var newTask = { id: uid(), text: '', kind: 'task', status: null, eveningNote: '', plan: null };
+  if (kind === 'knowledge') {
+    newTask.itemType = 'knowledge';
+    if (!document.querySelector('.add-kind-btn.knowledge-on')) {
+      document.querySelectorAll('.add-kind-btn').forEach(function(b) { b.classList.remove('active'); });
+      document.querySelector('.add-kind-btn[onclick*="knowledge"]').classList.add('active');
+    }
+  } else if (kind === 'habit') {
+    newTask.kind = 'habit';
+  }
+  d.morningTasks.push(newTask);
   await API.saveDay(currentDate, d);
   await renderToday();
 }
@@ -303,4 +313,57 @@ async function archiveHabit(habitId) {
   await API.deleteHabit(habitId);
   showToast('习惯已归档');
   await renderHabits();
+}
+
+/* ─── Review Actions ─── */
+
+async function completeReview(reviewId) {
+  try {
+    var res = await API.markReviewDone(reviewId);
+    if (res.status === 'graduated') {
+      showToast('🎓 已掌握！6轮复习完成');
+    } else {
+      showToast('复习完成 ✓ · 下次：' + res.nextReview);
+    }
+    await renderToday();
+  } catch(e) {
+    showToast('操作失败');
+  }
+}
+
+async function deleteReview(reviewId) {
+  if (!confirm('确定删除这个复习计划？')) return;
+  try {
+    await API.deleteReview(reviewId);
+    showToast('已删除');
+    await renderKnowledge();
+  } catch(e) {
+    showToast('删除失败');
+  }
+}
+
+/* ─── Knowledge Page ─── */
+
+function showAddKnowledge() {
+  document.getElementById('knowledge-add-card').style.display = '';
+  document.getElementById('knowledge-add-text').focus();
+}
+
+function cancelAddKnowledge() {
+  document.getElementById('knowledge-add-card').style.display = 'none';
+  document.getElementById('knowledge-add-text').value = '';
+}
+
+async function createKnowledge() {
+  var text = document.getElementById('knowledge-add-text').value.trim();
+  if (!text) { showToast('请输入知识点'); return; }
+  try {
+    var res = await API.createReview(text);
+    document.getElementById('knowledge-add-text').value = '';
+    document.getElementById('knowledge-add-card').style.display = 'none';
+    showToast('知识已创建 ✓ · 明天开始复习');
+    await renderKnowledge();
+  } catch(e) {
+    showToast('创建失败');
+  }
 }

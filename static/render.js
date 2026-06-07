@@ -88,12 +88,24 @@ async function renderToday() {
   // Auto-save for new today
   if (isNew && isToday) await API.saveDay(currentDate, data);
 
-  // Sort: habits first, then tasks (mutate in place so DOM sync works)
-  (data.morningTasks||[]).sort((a, b) => {
+  // Sort: reviews first, then habits, then tasks
+  const allTasks = data.morningTasks || [];
+
+  // Separate review tasks and regular tasks
+  const reviewTasks = allTasks.filter(t => t.itemType === 'review');
+  const regularTasks = allTasks.filter(t => t.itemType !== 'review');
+
+  // Show due reviews in the review section
+  renderReviewSection(reviewTasks);
+
+  // Update counters etc with regular tasks only
+  regularTasks.sort((a, b) => {
     const aH = (a.kind||'task') === 'habit' ? 0 : 1;
     const bH = (b.kind||'task') === 'habit' ? 0 : 1;
     return aH - bH;
   });
+  // Replace morningTasks with regular tasks only (reviews handled separately)
+  data.morningTasks = regularTasks;
 
   // Morning
   const savedMorning = !!data.savedMorning;
@@ -839,5 +851,81 @@ async function renderHeatmap() {
     wrap.innerHTML = html;
   } catch(e) {
     wrap.innerHTML = '<div class="empty-state" style="padding:20px;color:var(--danger);">加载热力图失败</div>';
+  }
+}
+
+/* ─── Review Section (in Today page) ─── */
+
+function renderReviewSection(reviewTasks) {
+  const section = document.getElementById('review-section');
+  const list = document.getElementById('review-list');
+  if (!reviewTasks || reviewTasks.length === 0) {
+    section.style.display = 'none';
+    return;
+  }
+  section.style.display = '';
+  list.innerHTML = reviewTasks.map(function(r) {
+    var round = (r._reviewRound || 0) + 1;
+    var roundLabel = '第' + round + '次复习';
+    return '<div class="review-item" onclick="completeReview(\'' + r.reviewId + '\')" title="点击标记复习完成">' +
+      '<span class="review-tag">复习</span>' +
+      '<span class="review-text">' + escapeHTML(r.text.replace('复习：', '')) + '</span>' +
+      '<span class="review-round">' + roundLabel + '</span>' +
+      '</div>';
+  }).join('');
+}
+
+function escapeHTML(str) {
+  return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
+/* ─── Knowledge Page ─── */
+
+async function renderKnowledge() {
+  document.getElementById('knowledge-today-label').textContent =
+    todayStr() + ' 周' + WEEKDAYS[new Date().getDay()];
+
+  // Fetch active + graduated reviews
+  var dueData = { reviews: [] };
+  try { dueData = await API.getDueReviews('2099-12-31'); } catch(e) {}
+  var allReviews = dueData.reviews || [];
+
+  var active = allReviews.filter(function(r) { return r.status === 'active'; });
+  var graduated = allReviews.filter(function(r) { return r.status === 'graduated'; });
+
+  document.getElementById('knowledge-active-count').textContent = active.length;
+
+  // Active list
+  var activeList = document.getElementById('knowledge-active-list');
+  if (active.length === 0) {
+    activeList.innerHTML = '<div class="empty-icon">📚</div>还没有需要复习的知识';
+  } else {
+    activeList.innerHTML = active.map(function(r) {
+      var round = r.reviewRound + 1;
+      var days = [1, 2, 4, 7, 15, 30];
+      var nextDays = round < days.length ? days[round] : '—';
+      return '<div class="knowledge-item">' +
+        '<div class="knowledge-item-row">' +
+        '<span class="knowledge-text">' + escapeHTML(r.taskText) + '</span>' +
+        '<div class="knowledge-item-actions">' +
+        '<span class="knowledge-round">第' + round + '轮 · ' + nextDays + '天后 · ' + r.nextReview + '</span>' +
+        '<button class="pomo-btn pomo-start" onclick="completeReview(\'' + r.id + '\')" style="font-size:11px;padding:4px 10px;margin-left:8px;">复习完成</button>' +
+        '<button class="pomo-btn pomo-reset" onclick="deleteReview(\'' + r.id + '\')" style="font-size:11px;padding:4px 10px;">删除</button>' +
+        '</div></div></div>';
+    }).join('');
+  }
+
+  // Graduated list
+  var graduatedList = document.getElementById('knowledge-graduated-list');
+  if (graduated.length === 0) {
+    graduatedList.innerHTML = '<div class="empty-icon">🎓</div>还没有掌握的知识';
+  } else {
+    graduatedList.innerHTML = graduated.map(function(r) {
+      return '<div class="knowledge-item graduated">' +
+        '<div class="knowledge-item-row">' +
+        '<span class="knowledge-text">🎓 ' + escapeHTML(r.taskText) + '</span>' +
+        '<span class="knowledge-round" style="color:var(--green);">已掌握</span>' +
+        '</div></div>';
+    }).join('');
   }
 }
