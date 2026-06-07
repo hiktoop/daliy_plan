@@ -4,15 +4,16 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>每日任务追踪</title>
-<link rel="stylesheet" href="/static/style.css?v=22">
-<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+<link rel="stylesheet" href="/static/style.css?v=23">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/vditor@3.10.6/dist/index.css">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/vditor@3.10.6/dist/index.min.js"></script>
 <!-- JS modules: loaded in dependency order -->
-<script src="/static/app.js?v=22"></script>
-<script src="/static/api.js?v=22"></script>
-<script src="/static/render.js?v=22"></script>
-  <script src="/static/actions.js?v=22"></script>
-  <script src="/static/quotes.js?v=22"></script>
+<script src="/static/app.js?v=23"></script>
+<script src="/static/api.js?v=23"></script>
+<script src="/static/render.js?v=23"></script>
+  <script src="/static/actions.js?v=23"></script>
+  <script src="/static/quotes.js?v=23"></script>
 </head>
 <body>
 
@@ -389,59 +390,67 @@
 </div>
 </div>
 
-<!-- DIARY / NOTES -->
+<!-- DIARY / NOTES — 双面板布局 -->
 <div class="page" id="page-diary">
-<div class="main">
-  <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;">
-    <span style="font-size:15px;font-weight:500;">📓 日记 · 笔记</span>
-    <div style="margin-left:auto;display:flex;gap:6px;">
-      <button class="pomo-btn pomo-start" style="font-size:12px;padding:4px 12px;" onclick="diaryTab='diary';renderDiaryPage()">日记</button>
-      <button class="pomo-btn pomo-reset" style="font-size:12px;padding:4px 12px;" onclick="diaryTab='notes';renderDiaryPage()">📝 笔记</button>
-    </div>
-  </div>
-
-  <!-- Diary View -->
-  <div id="diary-view">
-    <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;">
-      <button onclick="diaryNav(-1)" style="border:0.5px solid var(--border);background:var(--surface);border-radius:6px;padding:4px 8px;cursor:pointer;">&#8249;</button>
-      <span id="diary-date-label" style="font-size:14px;min-width:140px;text-align:center;"></span>
-      <button onclick="diaryNav(1)" style="border:0.5px solid var(--border);background:var(--surface);border-radius:6px;padding:4px 8px;cursor:pointer;">&#8250;</button>
-      <button onclick="diaryGoToday()" style="font-size:11px;padding:3px 10px;border:0.5px solid var(--border);background:var(--surface);border-radius:6px;cursor:pointer;margin-left:4px;">今天</button>
-    </div>
-    <textarea id="diary-editor" placeholder="今天发生了什么？记录一下吧…（支持 Markdown）" style="width:100%;min-height:220px;padding:12px;border:0.5px solid var(--border);border-radius:8px;font-size:14px;font-family:inherit;resize:vertical;background:var(--surface);color:var(--text);box-sizing:border-box;"></textarea>
-    <div style="display:flex;gap:8px;margin-top:8px;">
-      <button class="pomo-btn pomo-start" style="font-size:12px;" onclick="saveDiary()">保存日记</button>
-      <button class="pomo-btn pomo-reset" style="font-size:12px;" onclick="deleteDiary()">删除</button>
-    </div>
-    <div id="diary-preview" style="margin-top:16px;padding:12px;border:0.5px solid var(--border);border-radius:8px;background:var(--surface-2);display:none;">
-      <div style="font-size:12px;color:var(--text-3);margin-bottom:8px;">预览</div>
-      <div id="diary-preview-body" style="font-size:14px;line-height:1.7;"></div>
-    </div>
-  </div>
-
-  <!-- Notes View -->
-  <div id="notes-view" style="display:none;">
-    <!-- Search + New -->
-    <div style="display:flex;gap:8px;margin-bottom:12px;align-items:center;">
-      <input type="text" id="notes-search" placeholder="搜索笔记…" style="flex:1;padding:6px 10px;border:0.5px solid var(--border);border-radius:6px;font-size:13px;background:var(--surface);color:var(--text);" oninput="renderNotesList()">
-      <button class="pomo-btn pomo-start" style="font-size:12px;padding:4px 12px;" onclick="showNoteEditor()">+ 新建笔记</button>
-    </div>
-    <!-- Note Editor (hidden by default) -->
-    <div id="note-editor-wrap" style="display:none;margin-bottom:16px;">
-      <input type="text" id="note-title" placeholder="标题" style="width:100%;padding:8px 10px;border:0.5px solid var(--border);border-radius:6px;font-size:14px;font-weight:500;background:var(--surface);color:var(--text);box-sizing:border-box;margin-bottom:8px;">
-      <input type="text" id="note-tags" placeholder="标签（逗号分隔）" style="width:100%;padding:6px 10px;border:0.5px solid var(--border);border-radius:6px;font-size:12px;background:var(--surface);color:var(--text-2);box-sizing:border-box;margin-bottom:8px;">
-      <textarea id="note-content" placeholder="内容（支持 Markdown）" style="width:100%;min-height:180px;padding:10px;border:0.5px solid var(--border);border-radius:8px;font-size:14px;font-family:inherit;resize:vertical;background:var(--surface);color:var(--text);box-sizing:border-box;"></textarea>
-      <div style="display:flex;gap:8px;margin-top:8px;">
-        <button class="pomo-btn pomo-start" style="font-size:12px;" onclick="saveNote()">保存笔记</button>
-        <button class="pomo-btn pomo-reset" style="font-size:12px;" onclick="cancelNoteEdit()">取消</button>
+<div class="notebook-layout">
+  <!-- Left panel: Folder tree + notes -->
+  <div class="nb-sidebar">
+    <!-- Toolbar -->
+    <div class="nb-sidebar-toolbar">
+      <span style="font-size:14px;font-weight:600;">📓 笔记</span>
+      <div style="display:flex;gap:4px;">
+        <button class="nb-btn nb-btn-icon" onclick="nbNewFolder()" title="新建文件夹">📁+</button>
+        <button class="nb-btn nb-btn-icon" onclick="nbNewNote()" title="新建笔记">📄+</button>
+        <button class="nb-btn nb-btn-icon" onclick="nbShowDiary()" title="写日记">📅</button>
       </div>
     </div>
-    <!-- Notes List -->
-    <div id="notes-list"></div>
-    <div id="notes-empty" class="empty-state" style="display:none;">
+
+    <!-- Search -->
+    <div class="nb-search">
+      <input type="text" id="nb-search-input" placeholder="搜索笔记…" oninput="nbSearch()">
+    </div>
+
+    <!-- Folder tree + note list -->
+    <div class="nb-tree" id="nb-tree">
+      <div style="text-align:center;padding:24px;color:var(--text-3);">加载中…</div>
+    </div>
+  </div>
+
+  <!-- Right panel: Editor -->
+  <div class="nb-editor">
+    <!-- Editor header bar -->
+    <div class="nb-editor-header" id="nb-editor-header">
+      <input type="text" id="nb-title-input" placeholder="笔记标题…" class="nb-title-input">
+      <input type="text" id="nb-tags-input" placeholder="标签（逗号分隔）" class="nb-tags-input">
+      <div class="nb-editor-actions">
+        <span id="nb-editor-status" style="font-size:11px;color:var(--text-3);"></span>
+        <button class="nb-btn nb-btn-save" onclick="nbSaveNote()">💾 保存</button>
+        <button class="nb-btn nb-btn-delete" onclick="nbDeleteNote()">🗑</button>
+      </div>
+    </div>
+
+    <!-- Diary header bar (shown only when diary mode) -->
+    <div class="nb-editor-header" id="nb-diary-header" style="display:none;">
+      <div style="display:flex;align-items:center;gap:8px;">
+        <button class="nb-btn nb-btn-icon" onclick="nbDiaryNav(-1)" title="前一天">◀</button>
+        <span id="nb-diary-date-label" style="font-size:14px;font-weight:500;min-width:140px;text-align:center;"></span>
+        <button class="nb-btn nb-btn-icon" onclick="nbDiaryNav(1)" title="后一天">▶</button>
+        <button class="nb-btn" style="font-size:11px;padding:2px 10px;" onclick="nbDiaryGoToday()">今天</button>
+      </div>
+      <div class="nb-editor-actions">
+        <span id="nb-diary-status" style="font-size:11px;color:var(--text-3);"></span>
+        <button class="nb-btn nb-btn-save" onclick="nbSaveDiary()">💾 保存日记</button>
+      </div>
+    </div>
+
+    <!-- Vditor container -->
+    <div class="nb-vditor-wrap" id="nb-vditor"></div>
+
+    <!-- Empty state -->
+    <div class="nb-empty" id="nb-empty">
       <div class="empty-icon">📝</div>
-      还没有笔记<br>
-      <span style="font-size:12px;color:var(--text-3);">点击「+ 新建笔记」开始记录</span>
+      <div>选择一个笔记开始编辑</div>
+      <div style="font-size:12px;color:var(--text-3);margin-top:4px;">或点击左侧 + 新建笔记</div>
     </div>
   </div>
 </div>

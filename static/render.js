@@ -1414,6 +1414,7 @@ function renderReviewSection(reviewTasks) {
 }
 
 function escapeHTML(str) {
+  if (!str) return '';
   return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
 
@@ -1610,179 +1611,493 @@ async function setTaskSourceUrl(taskId, url) {
   }
 }
 
-/* ─── Diary / Notes System ─── */
+/* ─── Notebook System (Vditor + Folder Tree) ─── */
 
-var diaryTab = 'diary';   // 'diary' | 'notes'
-var diaryCurrentDate = todayStr();
-var editingNoteId = null;  // null = creating new note
+// State
+var nbState = {
+  mode: 'notes',        // 'notes' | 'diary'
+  selectedFolderId: null,
+  editingNoteId: null,
+  vd: null,             // Vditor instance
+  treeData: { tree: [], orphanNotes: [] },
+  currentNoteTitle: '',
+  currentNoteTags: '',
+  diaryDate: todayStr(),
+  expandedFolders: {},  // id -> bool
+  dirty: false,         // unsaved changes
+  lastSavedMd: '',
+  autoSaveTimer: null,
+};
 
-// Markdown renderer (uses marked.js CDN)
-function renderMarkdown(md) {
-  if (typeof marked !== 'undefined') {
-    return marked.parse(md || '');
-  }
-  // fallback: simple line break
-  return (md || '').replace(/\n/g, '<br>');
-}
-
-async function renderDiaryPage() {
-  var isDiary = diaryTab === 'diary';
-  document.getElementById('diary-view').style.display = isDiary ? '' : 'none';
-  document.getElementById('notes-view').style.display = isDiary ? 'none' : '';
-
-  // Update button active state
-  var btns = document.querySelectorAll('#page-diary .pomo-btn');
-  if (btns[0]) btns[0].className = 'pomo-btn ' + (isDiary ? 'pomo-start' : 'pomo-reset');
-  if (btns[1]) btns[1].className = 'pomo-btn ' + (!isDiary ? 'pomo-start' : 'pomo-reset');
-
-  if (isDiary) {
-    await renderDiaryEditor();
-  } else {
-    await renderNotesList();
+async function renderNotebook() {
+  // Load tree
+  await nbLoadTree();
+  // If no note selected, show empty state
+  if (!nbState.editingNoteId && nbState.mode === 'notes') {
+    nbShowEmpty();
   }
 }
 
-async function renderDiaryEditor() {
-  var label = document.getElementById('diary-date-label');
-  label.textContent = diaryCurrentDate + '  ' + WEEKDAYS[new Date(diaryCurrentDate).getDay()];
+/* ─── Tree ─── */
+
+async function nbLoadTree() {
   try {
-    var data = await API.getDiary(diaryCurrentDate);
-    document.getElementById('diary-editor').value = data.content || '';
+    var data = await API.getFolderTree();
+    nbState.treeData = data;
   } catch(e) {
-    document.getElementById('diary-editor').value = '';
+    nbState.treeData = { tree: [], orphanNotes: [] };
   }
-  document.getElementById('diary-preview').style.display = 'none';
+  nbRenderTree();
 }
 
-function diaryNav(delta) {
-  var d = new Date(diaryCurrentDate + 'T00:00:00');
-  d.setDate(d.getDate() + delta);
-  diaryCurrentDate = d.toISOString().slice(0, 10);
-  renderDiaryEditor();
-}
+function nbRenderTree() {
+  var container = document.getElementById('nb-tree');
+  var tree = nbState.treeData.tree;
+  var orphans = nbState.treeData.orphanNotes;
 
-function diaryGoToday() {
-  diaryCurrentDate = todayStr();
-  renderDiaryEditor();
-}
+  var html = '';
 
-async function saveDiary() {
-  var content = document.getElementById('diary-editor').value;
-  try {
-    await API.saveDiary(diaryCurrentDate, content);
-    showToast('日记已保存 ✓');
-    // Show preview
-    var preview = document.getElementById('diary-preview');
-    var body = document.getElementById('diary-preview-body');
-    body.innerHTML = renderMarkdown(content);
-    preview.style.display = '';
-  } catch(e) {
-    showToast('保存失败');
+  // Diary quick entry
+  html += '<div class="nb-tree-item nb-tree-diary' + (nbState.mode === 'diary' ? ' active' : '') + '" onclick="nbShowDiary()">';
+  html += '<span class="nb-tree-icon">📅</span> 日记';
+  html += '</div>';
+
+  // Root "所有笔记" virtual folder
+  html += '<div class="nb-tree-item nb-tree-all' + (nbState.mode === 'notes' && !nbState.selectedFolderId && !nbState.editingNoteId ? ' active' : '') + '" onclick="nbSelectFolder(null)">';
+  html += '<span class="nb-tree-icon">📓</span> 所有笔记';
+  html += '</div>';
+
+  // Render folder tree
+  for (var i = 0; i < tree.length; i++) {
+    html += nbRenderFolderNode(tree[i], 0);
   }
-}
 
-async function deleteDiary() {
-  if (!confirm('确定删除 ' + diaryCurrentDate + ' 的日记？')) return;
-  try {
-    await API.deleteDiary(diaryCurrentDate);
-    document.getElementById('diary-editor').value = '';
-    showToast('日记已删除');
-  } catch(e) {
-    showToast('删除失败');
-  }
-}
-
-async function renderNotesList() {
-  var q = document.getElementById('notes-search').value.trim();
-  var data = { notes: [] };
-  try {
-    data = await API.listNotes(q);
-  } catch(e) {}
-  var list = document.getElementById('notes-list');
-  var empty = document.getElementById('notes-empty');
-  if (!data.notes || data.notes.length === 0) {
-    list.innerHTML = '';
-    empty.style.display = '';
-    return;
-  }
-  empty.style.display = 'none';
-  list.innerHTML = data.notes.map(function(n) {
-    var tagsHtml = (n.tags || []).map(function(t) {
-      return '<span style="font-size:10px;background:var(--accent-light);color:var(--accent-text);padding:1px 6px;border-radius:8px;margin-right:4px;">' + escapeHTML(t) + '</span>';
-    }).join('');
-    var preview = (n.content || '').replace(/[#*_~`>\[\]\n]/g, '').slice(0, 100);
-    var noteIdAttr = 'data-note-id="' + escapeHTML(n.id) + '"';
-    return '<div class="note-card" ' + noteIdAttr + ' style="cursor:pointer;">' +
-      '<div style="font-size:14px;font-weight:500;margin-bottom:4px;">' + escapeHTML(n.title || '（无标题）') + '</div>' +
-      '<div style="font-size:11px;color:var(--text-3);margin-bottom:6px;">' + tagsHtml + '</div>' +
-      '<div style="font-size:12px;color:var(--text-2);line-height:1.5;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + escapeHTML(preview) + '</div>' +
-      '</div>';
-  }).join('');
-
-  // Event delegation for note card clicks
-  list._noteClick = list._noteClick || function(e) {
-    var card = e.target.closest('.note-card');
-    if (card) editNote(card.dataset.noteId);
-  };
-  list.removeEventListener('click', list._noteClick);
-  list.addEventListener('click', list._noteClick);
-}
-
-function showNoteEditor(noteId) {
-  editingNoteId = noteId || null;
-  var wrap = document.getElementById('note-editor-wrap');
-  wrap.style.display = '';
-  if (editingNoteId) {
-    API.getNote(editingNoteId).then(function(n) {
-      document.getElementById('note-title').value = n.title || '';
-      document.getElementById('note-tags').value = (n.tags || []).join(', ');
-      document.getElementById('note-content').value = n.content || '';
-    });
-  } else {
-    document.getElementById('note-title').value = '';
-    document.getElementById('note-tags').value = '';
-    document.getElementById('note-content').value = '';
-  }
-  document.getElementById('note-title').focus();
-}
-
-function cancelNoteEdit() {
-  editingNoteId = null;
-  document.getElementById('note-editor-wrap').style.display = 'none';
-}
-
-async function saveNote() {
-  var title = document.getElementById('note-title').value.trim();
-  var content = document.getElementById('note-content').value;
-  var tagsStr = document.getElementById('note-tags').value.trim();
-  var tags = tagsStr ? tagsStr.split(',').map(function(t) { return t.trim(); }).filter(Boolean) : [];
-  try {
-    if (editingNoteId) {
-      await API.updateNote(editingNoteId, { title: title, content: content, tags: tags });
-      showToast('笔记已更新 ✓');
-    } else {
-      var res = await API.createNote({ title: title, content: content, tags: tags });
-      editingNoteId = res.id;
-      showToast('笔记已创建 ✓');
+  // Orphan notes (no folder)
+  if (orphans && orphans.length > 0) {
+    html += '<div class="nb-tree-section">未归类笔记</div>';
+    for (var j = 0; j < orphans.length; j++) {
+      html += nbRenderNoteItem(orphans[j]);
     }
-    cancelNoteEdit();
-    await renderNotesList();
+  }
+
+  container.innerHTML = html;
+}
+
+function nbRenderFolderNode(node, depth) {
+  var expanded = nbState.expandedFolders[node.id] !== false; // default open
+  var isSelected = nbState.selectedFolderId === node.id;
+  var hasChildren = node.children && node.children.length > 0;
+  var hasNotes = node.notes && node.notes.length > 0;
+
+  var margin = depth * 16;
+  var html = '';
+
+  // Folder row
+  html += '<div class="nb-tree-item nb-tree-folder' + (isSelected ? ' active' : '') + '" style="padding-left:' + (12 + margin) + 'px;" onclick="nbSelectFolder(\'' + escapeAttr(node.id) + '\')">';
+  html += '<span class="nb-tree-toggle" onclick="nbToggleFolder(event, \'' + escapeAttr(node.id) + '\')">' + (expanded ? '▼' : '▶') + '</span>';
+  html += '<span class="nb-tree-icon">' + (expanded ? '📂' : '📁') + '</span> ';
+  html += '<span class="nb-tree-name">' + escapeHTML(node.name || '未命名文件夹') + '</span>';
+  html += '<span class="nb-tree-count">' + ((node.notes ? node.notes.length : 0) + (node.children ? node.children.length : 0)) + '</span>';
+  // Context menu button
+  html += '<span class="nb-tree-menu-btn" onclick="nbFolderMenu(event, \'' + escapeAttr(node.id) + '\')" title="更多">⋯</span>';
+  html += '</div>';
+
+  // Children
+  if (expanded && (hasChildren || hasNotes)) {
+    html += '<div class="nb-tree-children">';
+    // Child folders
+    if (hasChildren) {
+      for (var i = 0; i < node.children.length; i++) {
+        html += nbRenderFolderNode(node.children[i], depth + 1);
+      }
+    }
+    // Notes in this folder
+    if (hasNotes) {
+      for (var j = 0; j < node.notes.length; j++) {
+        html += '<div class="nb-tree-item nb-tree-note' + (nbState.editingNoteId === node.notes[j].id ? ' active' : '') + '" style="padding-left:' + (28 + margin) + 'px;" onclick="nbOpenNote(\'' + escapeAttr(node.notes[j].id) + '\')">';
+        html += '<span class="nb-tree-icon">📄</span> ';
+        html += '<span class="nb-tree-name">' + escapeHTML(node.notes[j].title) + '</span>';
+        html += '</div>';
+      }
+    }
+    html += '</div>';
+  }
+
+  return html;
+}
+
+function nbRenderNoteItem(note) {
+  return '<div class="nb-tree-item nb-tree-note' + (nbState.editingNoteId === note.id ? ' active' : '') + '" style="padding-left:28px;" onclick="nbOpenNote(\'' + escapeAttr(note.id) + '\')">' +
+    '<span class="nb-tree-icon">📄</span> ' +
+    '<span class="nb-tree-name">' + escapeHTML(note.title) + '</span>' +
+    '</div>';
+}
+
+function nbSelectFolder(folderId) {
+  nbState.selectedFolderId = folderId;
+  nbState.mode = 'notes';
+  // Don't auto-select a note, stay in folder view
+  document.getElementById('nb-editor-header').style.display = 'none';
+  document.getElementById('nb-diary-header').style.display = 'none';
+  nbShowEmpty();
+  nbRenderTree();
+}
+
+async function nbOpenNote(noteId) {
+  nbState.mode = 'notes';
+  nbState.editingNoteId = noteId;
+  nbState.selectedFolderId = null;
+  nbState.dirty = false;
+
+  document.getElementById('nb-editor-header').style.display = 'flex';
+  document.getElementById('nb-diary-header').style.display = 'none';
+  document.getElementById('nb-empty').style.display = 'none';
+  document.getElementById('nb-vditor').style.display = '';
+
+  // Show loading state
+  document.getElementById('nb-title-input').value = '加载中…';
+
+  try {
+    var note = await API.getNote(noteId);
+    nbState.currentNoteTitle = note.title || '';
+    nbState.currentNoteTags = (note.tags || []).join(', ');
+    nbState.selectedFolderId = note.folderId;
+    nbState.lastSavedMd = note.content || '';
+
+    document.getElementById('nb-title-input').value = nbState.currentNoteTitle;
+    document.getElementById('nb-tags-input').value = nbState.currentNoteTags;
+
+    // Init Vditor with content
+    nbInitVditor(note.content || '');
+  } catch(e) {
+    showToast('加载笔记失败');
+    nbShowEmpty();
+  }
+
+  nbRenderTree();
+}
+
+function nbNewNote() {
+  nbState.mode = 'notes';
+  nbState.editingNoteId = null;
+  nbState.currentNoteTitle = '';
+  nbState.currentNoteTags = '';
+  nbState.dirty = false;
+  nbState.lastSavedMd = '';
+
+  document.getElementById('nb-editor-header').style.display = 'flex';
+  document.getElementById('nb-diary-header').style.display = 'none';
+  document.getElementById('nb-empty').style.display = 'none';
+  document.getElementById('nb-vditor').style.display = '';
+
+  document.getElementById('nb-title-input').value = '';
+  document.getElementById('nb-tags-input').value = '';
+  document.getElementById('nb-editor-status').textContent = '新笔记';
+
+  nbInitVditor('');
+  nbRenderTree();
+}
+
+function nbShowEmpty() {
+  nbState.editingNoteId = null;
+  document.getElementById('nb-editor-header').style.display = 'none';
+  document.getElementById('nb-diary-header').style.display = 'none';
+  document.getElementById('nb-empty').style.display = '';
+  document.getElementById('nb-vditor').style.display = 'none';
+
+  // Destroy Vditor instance if exists
+  if (nbState.vd) {
+    try { nbState.vd.destroy(); } catch(e) {}
+    nbState.vd = null;
+  }
+}
+
+/* ─── Vditor ─── */
+
+function nbInitVditor(markdown) {
+  var container = document.getElementById('nb-vditor');
+  container.innerHTML = '';
+  container.style.display = '';
+
+  // Destroy existing instance
+  if (nbState.vd) {
+    try { nbState.vd.destroy(); } catch(e) {}
+    nbState.vd = null;
+  }
+
+  var vditor = new Vditor('nb-vditor', {
+    height: window.innerHeight - 150,
+    mode: 'ir',  // instant rendering (实时渲染)
+    placeholder: '开始写作…',
+    value: markdown || '',
+    cache: { enable: false },
+    toolbar: [
+      'headings', 'bold', 'italic', 'strike', 'line', 'quote',
+      'list', 'ordered-list', 'check', 'code', 'inline-code',
+      'link', 'table', '|',
+      'undo', 'redo', '|',
+      'fullscreen', 'outline'
+    ],
+    after: function() {
+      // Listen for content changes
+      nbState.vd = vditor;
+      vditor.vditor.element.addEventListener('input', function() {
+        nbState.dirty = true;
+        nbAutoSave();
+      });
+    },
+    blur: function(md) {
+      if (md !== nbState.lastSavedMd) {
+        nbState.dirty = true;
+      }
+    },
+    upload: {
+      accept: 'image/*',
+      handler: function(files) {
+        // For now, no image upload — just display base64
+        return null;
+      }
+    },
+  });
+
+  nbState.vd = vditor;
+}
+
+function nbAutoSave() {
+  clearTimeout(nbState.autoSaveTimer);
+  nbState.autoSaveTimer = setTimeout(function() {
+    if (nbState.mode === 'notes' && nbState.editingNoteId) {
+      nbSaveNote(true);
+    }
+  }, 5000);
+}
+
+/* ─── Save / Delete Note ─── */
+
+async function nbSaveNote(silent) {
+  var title = document.getElementById('nb-title-input').value.trim();
+  var tagsStr = document.getElementById('nb-tags-input').value.trim();
+  var tags = tagsStr ? tagsStr.split(',').map(function(t) { return t.trim(); }).filter(Boolean) : [];
+
+  // Get content from Vditor
+  var content = '';
+  if (nbState.vd) {
+    content = nbState.vd.getValue();
+  }
+
+  try {
+    if (nbState.editingNoteId) {
+      await API.updateNote(nbState.editingNoteId, {
+        title: title,
+        content: content,
+        tags: tags,
+        folderId: nbState.selectedFolderId
+      });
+      if (!silent) showToast('笔记已保存 ✓');
+    } else {
+      var data = {
+        title: title,
+        content: content,
+        tags: tags,
+        folderId: nbState.selectedFolderId
+      };
+      var res = await API.createNote(data);
+      nbState.editingNoteId = res.id;
+      if (!silent) showToast('笔记已创建 ✓');
+    }
+
+    nbState.lastSavedMd = content;
+    nbState.dirty = false;
+    nbState.currentNoteTitle = title;
+    nbState.currentNoteTags = tagsStr;
+    document.getElementById('nb-editor-status').textContent = '已保存 ' + new Date().toLocaleTimeString();
+
+    // Refresh tree to show new note
+    nbLoadTree();
+  } catch(e) {
+    if (!silent) showToast('保存失败');
+  }
+}
+
+async function nbDeleteNote() {
+  if (!nbState.editingNoteId) return;
+  if (!confirm('确定删除这篇笔记？')) return;
+
+  try {
+    await API.deleteNote(nbState.editingNoteId);
+    showToast('笔记已删除');
+    nbState.editingNoteId = null;
+    nbShowEmpty();
+    nbLoadTree();
+  } catch(e) {
+    showToast('删除失败');
+  }
+}
+
+/* ─── Folder CRUD ─── */
+
+async function nbNewFolder() {
+  var name = prompt('文件夹名称：');
+  if (!name || !name.trim()) return;
+  try {
+    var parentId = nbState.selectedFolderId || null;
+    await API.createFolder({ name: name.trim(), parentId: parentId });
+    showToast('文件夹已创建 ✓');
+    nbLoadTree();
+  } catch(e) {
+    showToast('创建失败');
+  }
+}
+
+function nbFolderMenu(e, folderId) {
+  e.stopPropagation();
+  var action = prompt('操作：rename=重命名, delete=删除', 'rename');
+  if (!action) return;
+
+  if (action === 'rename' || action === '重命名') {
+    nbRenameFolder(folderId);
+  } else if (action === 'delete' || action === '删除') {
+    nbDeleteFolder(folderId);
+  }
+}
+
+async function nbRenameFolder(folderId) {
+  var name = prompt('新名称：');
+  if (!name || !name.trim()) return;
+  try {
+    await API.updateFolder(folderId, { name: name.trim() });
+    showToast('已重命名 ✓');
+    nbLoadTree();
+  } catch(e) {
+    showToast('重命名失败');
+  }
+}
+
+async function nbDeleteFolder(folderId) {
+  if (!confirm('确定删除整个文件夹？文件夹内的笔记不会被删除，只会移出文件夹。')) return;
+  try {
+    await API.deleteFolder(folderId);
+    showToast('文件夹已删除 ✓');
+    if (nbState.selectedFolderId === folderId) {
+      nbState.selectedFolderId = null;
+    }
+    nbLoadTree();
+  } catch(e) {
+    showToast('删除失败');
+  }
+}
+
+function nbToggleFolder(e, folderId) {
+  e.stopPropagation();
+  if (nbState.expandedFolders[folderId] === false) {
+    nbState.expandedFolders[folderId] = true;
+  } else {
+    nbState.expandedFolders[folderId] = false;
+  }
+  nbRenderTree();
+}
+
+/* ─── Diary ─── */
+
+async function nbShowDiary() {
+  nbState.mode = 'diary';
+  nbState.editingNoteId = null;
+  nbState.dirty = false;
+  nbState.diaryDate = todayStr();
+
+  document.getElementById('nb-editor-header').style.display = 'none';
+  document.getElementById('nb-diary-header').style.display = 'flex';
+  document.getElementById('nb-empty').style.display = 'none';
+  document.getElementById('nb-vditor').style.display = '';
+
+  await nbLoadDiaryContent();
+  nbRenderTree();
+}
+
+async function nbLoadDiaryContent() {
+  var label = document.getElementById('nb-diary-date-label');
+  var d = new Date(nbState.diaryDate + 'T00:00:00');
+  var weekdays = ['日','一','二','三','四','五','六'];
+  label.textContent = nbState.diaryDate + ' 周' + weekdays[d.getDay()];
+
+  try {
+    var data = await API.getDiary(nbState.diaryDate);
+    nbInitVditor(data.content || '');
+    nbState.lastSavedMd = data.content || '';
+    document.getElementById('nb-diary-status').textContent = data.exists ? '已加载' : '新日记';
+  } catch(e) {
+    nbInitVditor('');
+    nbState.lastSavedMd = '';
+  }
+}
+
+function nbDiaryNav(delta) {
+  var d = new Date(nbState.diaryDate + 'T00:00:00');
+  d.setDate(d.getDate() + delta);
+  nbState.diaryDate = d.toISOString().slice(0, 10);
+  nbLoadDiaryContent();
+}
+
+function nbDiaryGoToday() {
+  nbState.diaryDate = todayStr();
+  nbLoadDiaryContent();
+}
+
+async function nbSaveDiary() {
+  var content = '';
+  if (nbState.vd) {
+    content = nbState.vd.getValue();
+  }
+  try {
+    await API.saveDiary(nbState.diaryDate, content);
+    nbState.lastSavedMd = content;
+    nbState.dirty = false;
+    document.getElementById('nb-diary-status').textContent = '已保存 ' + new Date().toLocaleTimeString();
+    showToast('日记已保存 ✓');
   } catch(e) {
     showToast('保存失败');
   }
 }
 
-async function editNote(noteId) {
-  showNoteEditor(noteId);
+/* ─── Search ─── */
+
+var nbSearchTimer;
+function nbSearch() {
+  clearTimeout(nbSearchTimer);
+  nbSearchTimer = setTimeout(async function() {
+    var q = document.getElementById('nb-search-input').value.trim();
+    if (!q) {
+      nbLoadTree();
+      return;
+    }
+    try {
+      var data = await API.listNotes(q);
+      nbState.treeData = { tree: [], orphanNotes: [] };
+      // Display search results as flat list
+      var container = document.getElementById('nb-tree');
+      if (!data.notes || data.notes.length === 0) {
+        container.innerHTML = '<div style="text-align:center;padding:24px;color:var(--text-3);">无匹配结果</div>';
+        return;
+      }
+      var html = '<div class="nb-tree-section">搜索结果 (' + data.notes.length + ')</div>';
+      for (var i = 0; i < data.notes.length; i++) {
+        var n = data.notes[i];
+        html += '<div class="nb-tree-item nb-tree-note" style="padding-left:12px;" onclick="nbOpenNote(\'' + escapeAttr(n.id) + '\')">';
+        html += '<span class="nb-tree-icon">📄</span> ';
+        html += '<span class="nb-tree-name">' + escapeHTML(n.title || '无标题') + '</span>';
+        html += '<span class="nb-tree-count" style="font-size:10px;">' + (n.content || '').replace(/[#*_~`>\[\]\n]/g, '').slice(0, 40) + '</span>';
+        html += '</div>';
+      }
+      container.innerHTML = html;
+    } catch(e) {
+      // ignore
+    }
+  }, 300);
 }
 
-async function deleteNote(noteId) {
-  if (!confirm('确定删除这条笔记？')) return;
-  try {
-    await API.deleteNote(noteId);
-    showToast('笔记已删除');
-    await renderNotesList();
-  } catch(e) {
-    showToast('删除失败');
-  }
+/* ─── Helpers ─── */
+
+function escapeAttr(str) {
+  if (!str) return '';
+  return String(str).replace(/'/g, "\\'").replace(/"/g, '&quot;');
 }

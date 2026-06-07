@@ -111,13 +111,24 @@ def init_db():
                 updated_at  REAL
             );
 
+            CREATE TABLE IF NOT EXISTS note_folders (
+                id          TEXT PRIMARY KEY,
+                name        TEXT NOT NULL DEFAULT '',
+                parent_id   TEXT,
+                sort_order  INTEGER DEFAULT 0,
+                created_at  REAL,
+                FOREIGN KEY (parent_id) REFERENCES note_folders(id) ON DELETE CASCADE
+            );
+
             CREATE TABLE IF NOT EXISTS notes (
                 id          TEXT PRIMARY KEY,
+                folder_id   TEXT,
                 title       TEXT NOT NULL DEFAULT '',
                 content     TEXT DEFAULT '',
                 tags        TEXT DEFAULT '[]',
                 created_at  REAL,
-                updated_at  REAL
+                updated_at  REAL,
+                FOREIGN KEY (folder_id) REFERENCES note_folders(id) ON DELETE SET NULL
             );
         """)
 
@@ -126,11 +137,29 @@ def init_db():
             db.execute("SELECT content FROM diary LIMIT 1")
         except sqlite3.OperationalError:
             db.execute("CREATE TABLE IF NOT EXISTS diary (date TEXT PRIMARY KEY, content TEXT DEFAULT '', created_at REAL, updated_at REAL)")
-        # Migration: add notes table
+        # Migration: add note_folders table
         try:
-            db.execute("SELECT title FROM notes LIMIT 1")
+            db.execute("SELECT name FROM note_folders LIMIT 1")
         except sqlite3.OperationalError:
-            db.execute("CREATE TABLE IF NOT EXISTS notes (id TEXT PRIMARY KEY, title TEXT NOT NULL DEFAULT '', content TEXT DEFAULT '', tags TEXT DEFAULT '[]', created_at REAL, updated_at REAL)")
+            db.execute("""CREATE TABLE IF NOT EXISTS note_folders (
+                id TEXT PRIMARY KEY, name TEXT NOT NULL DEFAULT '',
+                parent_id TEXT, sort_order INTEGER DEFAULT 0, created_at REAL,
+                FOREIGN KEY (parent_id) REFERENCES note_folders(id) ON DELETE CASCADE)""")
+        # Migration: add notes table + folder_id
+        try:
+            db.execute("SELECT folder_id FROM notes LIMIT 1")
+        except sqlite3.OperationalError:
+            # Check if old notes table exists without folder_id
+            try:
+                db.execute("SELECT title FROM notes LIMIT 1")
+                # Table exists, just add column
+                db.execute("ALTER TABLE notes ADD COLUMN folder_id TEXT REFERENCES note_folders(id) ON DELETE SET NULL")
+            except sqlite3.OperationalError:
+                db.execute("""CREATE TABLE IF NOT EXISTS notes (
+                    id TEXT PRIMARY KEY, folder_id TEXT,
+                    title TEXT NOT NULL DEFAULT '', content TEXT DEFAULT '',
+                    tags TEXT DEFAULT '[]', created_at REAL, updated_at REAL,
+                    FOREIGN KEY (folder_id) REFERENCES note_folders(id) ON DELETE SET NULL)""")
         # Migration: add status column if missing
         try:
             db.execute("SELECT status FROM plans LIMIT 1")

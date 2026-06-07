@@ -139,10 +139,32 @@ const API = {
     return this._fetch('/api/diary/' + encodeURIComponent(dateStr), { method: 'DELETE' });
   },
 
+  // ── Folders ──
+  async getFolderTree() {
+    return this._fetch('/api/folders/tree');
+  },
+  async createFolder(data) {
+    return this._fetch('/api/folders', {
+      method: 'POST', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify(data)
+    });
+  },
+  async updateFolder(id, data) {
+    return this._fetch('/api/folders/' + encodeURIComponent(id), {
+      method: 'PUT', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify(data)
+    });
+  },
+  async deleteFolder(id) {
+    return this._fetch('/api/folders/' + encodeURIComponent(id), { method: 'DELETE' });
+  },
+
   // ── Notes ──
-  async listNotes(q) {
-    var url = '/api/notes';
-    if (q) url += '?q=' + encodeURIComponent(q);
+  async listNotes(q, folderId) {
+    var parts = [];
+    if (q) parts.push('q=' + encodeURIComponent(q));
+    if (folderId) parts.push('folderId=' + encodeURIComponent(folderId));
+    var url = '/api/notes' + (parts.length ? '?' + parts.join('&') : '');
     return this._fetch(url);
   },
   async createNote(data) {

@@ -941,61 +941,240 @@ body {
   text-overflow: ellipsis; white-space: nowrap;
 }
 
-/* ─── Note Card (Diary/Notes page) ─── */
+/* ─── Notebook Layout (Diary/Notes page) ─── */
 
-.note-card {
-  padding: 12px 14px;
-  border: 0.5px solid var(--border);
-  border-radius: 8px;
-  margin-bottom: 8px;
+.notebook-layout {
+  display: flex;
+  height: calc(100vh - 52px);
+  overflow: hidden;
+}
+
+/* Left sidebar */
+.nb-sidebar {
+  width: 280px;
+  min-width: 220px;
+  border-right: 1px solid var(--border);
   background: var(--surface);
-  transition: box-shadow 0.12s;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
 }
-.note-card:hover {
-  box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+.nb-sidebar-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--border);
 }
-.note-card + .note-card {
-  margin-top: 2px;
+.nb-search {
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--border);
+}
+.nb-search input {
+  width: 100%;
+  padding: 6px 10px;
+  border: 0.5px solid var(--border);
+  border-radius: 6px;
+  font-size: 12px;
+  background: var(--surface-2);
+  color: var(--text);
+  outline: none;
+  box-sizing: border-box;
+}
+.nb-search input:focus {
+  border-color: var(--accent);
 }
 
-/* Diary preview */
-#diary-preview {
-  max-height: 400px;
+/* Tree */
+.nb-tree {
+  flex: 1;
   overflow-y: auto;
+  padding: 4px 0;
 }
-#diary-preview-body h1,
-#diary-preview-body h2,
-#diary-preview-body h3 {
-  margin: 12px 0 6px;
+.nb-tree-item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 5px 12px;
+  font-size: 13px;
+  cursor: pointer;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  transition: background 0.1s;
+  position: relative;
 }
-#diary-preview-body p {
-  margin: 6px 0;
-  line-height: 1.7;
-}
-#diary-preview-body ul,
-#diary-preview-body ol {
-  padding-left: 20px;
-  margin: 6px 0;
-}
-#diary-preview-body code {
+.nb-tree-item:hover {
   background: var(--surface-2);
-  padding: 1px 4px;
-  border-radius: 3px;
-  font-size: 0.9em;
 }
-#diary-preview-body pre {
-  background: var(--surface-2);
-  padding: 10px;
-  border-radius: 6px;
-  overflow-x: auto;
-  font-size: 12px;
-  line-height: 1.5;
-}
-#diary-preview-body blockquote {
-  border-left: 3px solid var(--accent);
-  margin: 8px 0;
-  padding: 4px 12px;
-  color: var(--text-2);
+.nb-tree-item.active {
   background: var(--accent-light);
-  border-radius: 0 6px 6px 0;
+  color: var(--accent-text);
+}
+.nb-tree-diary {
+  color: var(--accent);
+  font-weight: 500;
+}
+.nb-tree-all {
+  border-bottom: 1px solid var(--border);
+}
+.nb-tree-folder {
+  font-weight: 500;
+}
+.nb-tree-note {
+  color: var(--text-2);
+}
+.nb-tree-icon {
+  font-size: 14px;
+  flex-shrink: 0;
+}
+.nb-tree-toggle {
+  font-size: 9px;
+  width: 14px;
+  text-align: center;
+  flex-shrink: 0;
+  color: var(--text-3);
+}
+.nb-tree-name {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.nb-tree-count {
+  font-size: 10px;
+  color: var(--text-3);
+  background: var(--surface-2);
+  padding: 0 5px;
+  border-radius: 8px;
+  flex-shrink: 0;
+}
+.nb-tree-menu-btn {
+  display: none;
+  font-size: 12px;
+  color: var(--text-3);
+  padding: 0 2px;
+  flex-shrink: 0;
+}
+.nb-tree-item:hover .nb-tree-menu-btn {
+  display: inline;
+}
+.nb-tree-section {
+  padding: 6px 12px;
+  font-size: 11px;
+  color: var(--text-3);
+  font-weight: 500;
+}
+
+/* Right editor panel */
+.nb-editor {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: var(--bg);
+}
+.nb-editor-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface);
+  flex-wrap: wrap;
+}
+.nb-title-input {
+  flex: 1;
+  min-width: 120px;
+  padding: 6px 10px;
+  border: none;
+  border-radius: 4px;
+  font-size: 15px;
+  font-weight: 600;
+  background: transparent;
+  color: var(--text);
+  outline: none;
+}
+.nb-title-input:focus {
+  background: var(--surface-2);
+}
+.nb-tags-input {
+  width: 140px;
+  padding: 4px 8px;
+  border: 0.5px solid var(--border);
+  border-radius: 4px;
+  font-size: 11px;
+  background: var(--surface);
+  color: var(--text-2);
+  outline: none;
+}
+.nb-editor-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: auto;
+  flex-shrink: 0;
+}
+.nb-vditor-wrap {
+  flex: 1;
+  overflow: hidden;
+}
+.nb-empty {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-3);
+  font-size: 14px;
+}
+
+/* Buttons */
+.nb-btn {
+  padding: 4px 10px;
+  border: 0.5px solid var(--border);
+  border-radius: 4px;
+  font-size: 12px;
+  cursor: pointer;
+  background: var(--surface);
+  color: var(--text);
+  transition: background 0.12s;
+}
+.nb-btn:hover {
+  background: var(--surface-2);
+}
+.nb-btn-icon {
+  padding: 4px 6px;
+  font-size: 13px;
+}
+.nb-btn-save {
+  background: var(--accent);
+  color: #fff;
+  border-color: var(--accent);
+}
+.nb-btn-save:hover {
+  opacity: 0.9;
+}
+.nb-btn-delete {
+  color: #d32f2f;
+  border-color: transparent;
+}
+.nb-btn-delete:hover {
+  background: #fee;
+}
+
+/* Vditor overrides */
+#nb-vditor .vditor {
+  border: none !important;
+  border-radius: 0 !important;
+}
+#nb-vditor .vditor-toolbar {
+  border-top: none !important;
+  border-left: none !important;
+  border-right: none !important;
+}
+#nb-vditor .vditor-content {
+  border: none !important;
+}
+#nb-vditor .vditor-reset {
+  padding: 16px 24px !important;
 }
