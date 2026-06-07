@@ -15,6 +15,8 @@ class TaskItem(BaseModel):
     # 艾宾浩斯复习字段
     itemType: str | None = None   # None/"knowledge" — None 兼容旧数据
     reviewId: str | None = None   # 关联 reviews 表
+    # 来源链接（知识类任务的学习资料 URL）
+    sourceUrl: str | None = None
 
 
 class ReviewItem(BaseModel):
@@ -24,11 +26,13 @@ class ReviewItem(BaseModel):
     next_review: str   # YYYY-MM-DD
     last_review: str | None = None
     status: str = "active"  # "active" | "graduated" | "deleted"
+    source_url: str | None = None
 
 
 class ReviewCreate(BaseModel):
     task_text: str
     start_date: str | None = None  # 首次复习日期，默认明天
+    source_url: str | None = None   # 来源链接
 
 
 class DayData(BaseModel):

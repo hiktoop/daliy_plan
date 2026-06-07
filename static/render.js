@@ -198,6 +198,36 @@ function renderMorningItem(ul, task, index, data, streaks, savedMorning) {
     });
   }
   inputRow.appendChild(input);
+
+  // Knowledge task: source URL link/button (inline with textarea)
+  if (task.itemType === 'knowledge') {
+    const linkWrap = document.createElement('span');
+    linkWrap.style.cssText = 'flex-shrink:0;margin-top:4px;';
+    const hasUrl = task.sourceUrl && task.sourceUrl.trim();
+    if (hasUrl) {
+      const linkBtn = document.createElement('a');
+      linkBtn.href = task.sourceUrl;
+      linkBtn.target = '_blank';
+      linkBtn.rel = 'noopener';
+      linkBtn.className = 'task-url-btn has-url';
+      linkBtn.title = '打开学习资料：' + task.sourceUrl;
+      linkBtn.innerHTML = '🔗';
+      linkBtn.onclick = function(e) { e.stopPropagation(); };
+      linkWrap.appendChild(linkBtn);
+    } else if (!readOnly) {
+      const addUrlBtn = document.createElement('button');
+      addUrlBtn.className = 'task-url-btn';
+      addUrlBtn.title = '贴上学习资料链接，复习时一键打开';
+      addUrlBtn.innerHTML = '🔗';
+      addUrlBtn.onclick = function(e) {
+        e.stopPropagation();
+        showUrlInput(linkWrap, task.id);
+      };
+      linkWrap.appendChild(addUrlBtn);
+    }
+    inputRow.appendChild(linkWrap);
+  }
+
   content.appendChild(inputRow);
 
   // Plan buttons
@@ -1098,9 +1128,16 @@ function renderReviewSection(reviewTasks) {
   list.innerHTML = reviewTasks.map(function(r) {
     var round = (r._reviewRound || 0) + 1;
     var roundLabel = '第' + round + '次复习';
+    var urlLink = '';
+    if (r.sourceUrl && r.sourceUrl.trim()) {
+      urlLink = '<a href="' + escapeHTML(r.sourceUrl) + '" target="_blank" rel="noopener" ' +
+        'class="review-url-link" onclick="event.stopPropagation()" ' +
+        'title="打开学习资料">🔗 原文</a>';
+    }
     return '<div class="review-item" onclick="completeReview(\'' + r.reviewId + '\')" title="点击标记复习完成">' +
       '<span class="review-tag">复习</span>' +
       '<span class="review-text">' + escapeHTML(r.text.replace('复习：', '')) + '</span>' +
+      urlLink +
       '<span class="review-round">' + roundLabel + '</span>' +
       '</div>';
   }).join('');
@@ -1158,5 +1195,65 @@ async function renderKnowledge() {
         '<span class="knowledge-round" style="color:var(--green);">已掌握</span>' +
         '</div></div>';
     }).join('');
+  }
+}
+
+/* ── Knowledge Task URL ── */
+
+var _activeUrlInput = null;
+
+function showUrlInput(linkWrap, taskId) {
+  // Remove any existing url input
+  if (_activeUrlInput) _activeUrlInput.remove();
+
+  var wrap = document.createElement('span');
+  wrap.style.cssText = 'display:inline-flex;align-items:center;gap:4px;';
+  var inp = document.createElement('input');
+  inp.type = 'url';
+  inp.className = 'url-input-inline';
+  inp.placeholder = '粘贴学习网页地址...';
+  inp.style.cssText = 'width:180px;font-size:11px;padding:3px 6px;border:0.5px solid var(--border-md);border-radius:4px;background:var(--surface);color:var(--text);';
+
+  var confirmBtn = document.createElement('button');
+  confirmBtn.innerHTML = '✓';
+  confirmBtn.className = 'url-confirm-btn';
+  confirmBtn.onclick = function(e) { e.stopPropagation(); setTaskSourceUrl(taskId, inp.value); };
+
+  var cancelBtn = document.createElement('button');
+  cancelBtn.innerHTML = '✕';
+  cancelBtn.style.cssText = 'background:none;border:none;cursor:pointer;color:var(--text-3);font-size:12px;';
+  cancelBtn.onclick = function(e) { e.stopPropagation(); wrap.remove(); _activeUrlInput = null; };
+
+  // Enter key to confirm
+  inp.addEventListener('keydown', function(e) {
+    if (e.key === 'Enter') { e.preventDefault(); setTaskSourceUrl(taskId, inp.value); }
+  });
+
+  wrap.appendChild(inp);
+  wrap.appendChild(confirmBtn);
+  wrap.appendChild(cancelBtn);
+
+  linkWrap.innerHTML = '';
+  linkWrap.appendChild(wrap);
+  _activeUrlInput = wrap;
+
+  setTimeout(function() { inp.focus(); }, 50);
+}
+
+async function setTaskSourceUrl(taskId, url) {
+  url = (url || '').trim();
+  if (_activeUrlInput) { _activeUrlInput.remove(); _activeUrlInput = null; }
+  try {
+    var d = await API.getDay(currentDate);
+    var tasks = d.morningTasks || [];
+    var task = tasks.find(function(t) { return t.id === taskId; });
+    if (task) {
+      task.sourceUrl = url || null;
+      await API.saveDay(currentDate, d);
+      showToast(url ? '链接已保存 ✓' : '链接已清除');
+      await renderToday();
+    }
+  } catch(e) {
+    showToast('保存失败');
   }
 }

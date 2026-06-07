@@ -99,6 +99,7 @@ def init_db():
                 next_review  TEXT NOT NULL,
                 last_review  TEXT,
                 status       TEXT DEFAULT 'active',
+                source_url   TEXT DEFAULT '',
                 created_at   REAL,
                 updated_at   REAL
             );
@@ -108,3 +109,8 @@ def init_db():
             db.execute("SELECT status FROM plans LIMIT 1")
         except sqlite3.OperationalError:
             db.execute("ALTER TABLE plans ADD COLUMN status TEXT DEFAULT 'active'")
+        # Migration: add source_url column to reviews
+        try:
+            db.execute("SELECT source_url FROM reviews LIMIT 1")
+        except sqlite3.OperationalError:
+            db.execute("ALTER TABLE reviews ADD COLUMN source_url TEXT DEFAULT ''")
