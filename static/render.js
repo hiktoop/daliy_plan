@@ -1559,6 +1559,9 @@ function showUrlInput(linkWrap, taskId) {
   // Remove any existing url input
   if (_activeUrlInput) _activeUrlInput.remove();
 
+  // Save original 🔗 button before replacing content
+  var originalBtn = linkWrap.querySelector('.task-url-btn');
+
   var wrap = document.createElement('span');
   wrap.style.cssText = 'display:inline-flex;align-items:center;gap:4px;';
   var inp = document.createElement('input');
@@ -1575,7 +1578,13 @@ function showUrlInput(linkWrap, taskId) {
   var cancelBtn = document.createElement('button');
   cancelBtn.innerHTML = '✕';
   cancelBtn.style.cssText = 'background:none;border:none;cursor:pointer;color:var(--text-3);font-size:12px;';
-  cancelBtn.onclick = function(e) { e.stopPropagation(); wrap.remove(); _activeUrlInput = null; };
+  cancelBtn.onclick = function(e) {
+    e.stopPropagation();
+    wrap.remove();
+    _activeUrlInput = null;
+    // Restore original 🔗 button so it can be clicked again
+    if (originalBtn) linkWrap.appendChild(originalBtn);
+  };
 
   // Enter key to confirm
   inp.addEventListener('keydown', function(e) {
@@ -1586,7 +1595,8 @@ function showUrlInput(linkWrap, taskId) {
   wrap.appendChild(confirmBtn);
   wrap.appendChild(cancelBtn);
 
-  linkWrap.innerHTML = '';
+  // Replace content: keep originalBtn reference alive (already saved above)
+  while (linkWrap.firstChild) linkWrap.removeChild(linkWrap.firstChild);
   linkWrap.appendChild(wrap);
   _activeUrlInput = wrap;
 
