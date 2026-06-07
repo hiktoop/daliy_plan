@@ -610,7 +610,6 @@ async function pomoRefreshStats() {
         <td style="white-space:nowrap;">${startTime}</td>
         <td style="font-weight:500;color:var(--accent-text);white-space:nowrap;">${timeStr}</td>
         <td style="max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${taskLabel}</td>
-        <td><button class="pomo-del-btn" onclick="pomoDeleteSession('${s.id}')" title="删除">×</button></td>
       </tr>`;
     }).join('');
   }
@@ -718,8 +717,3 @@ function pomoSetCustom() {
   }
 }
 
-async function pomoDeleteSession(sessionId) {
-  await fetch('/api/focus/' + sessionId, {method: 'DELETE'});
-  showToast('记录已删除');
-  await pomoRefreshStats();
-}
