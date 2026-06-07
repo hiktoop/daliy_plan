@@ -4,14 +4,14 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>每日任务追踪</title>
-<link rel="stylesheet" href="/static/style.css?v=13">
+<link rel="stylesheet" href="/static/style.css?v=14">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
 <!-- JS modules: loaded in dependency order -->
-<script src="/static/app.js?v=13"></script>
-<script src="/static/api.js?v=13"></script>
-<script src="/static/render.js?v=13"></script>
-  <script src="/static/actions.js?v=13"></script>
-  <script src="/static/quotes.js?v=13"></script>
+<script src="/static/app.js?v=14"></script>
+<script src="/static/api.js?v=14"></script>
+<script src="/static/render.js?v=14"></script>
+  <script src="/static/actions.js?v=14"></script>
+  <script src="/static/quotes.js?v=14"></script>
 </head>
 <body>
 
@@ -113,9 +113,15 @@
 <div class="main">
   <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;">
     <span style="font-size:15px;font-weight:500;">历史记录</span>
+    <div class="view-toggle" id="history-view-toggle" style="display:flex;border-radius:8px;overflow:hidden;border:1px solid var(--border-md);">
+      <button class="view-toggle-btn active" data-view="table" onclick="switchHistoryView('table')">列表</button>
+      <button class="view-toggle-btn" data-view="calendar" onclick="switchHistoryView('calendar')">日历</button>
+    </div>
     <span style="font-size:12px;color:var(--text-3);margin-left:auto;" id="history-count"></span>
   </div>
-  <div class="card" style="padding:0;overflow:hidden;">
+
+  <!-- Table View -->
+  <div class="card" style="padding:0;overflow:hidden;" id="history-table-card">
     <div style="overflow-x:auto;">
       <table class="history-table" id="history-table">
         <thead>
@@ -133,6 +139,35 @@
       <div class="empty-icon">&#128203;</div>
       还没有任何记录，去今日页面开始填写吧
     </div>
+  </div>
+
+  <!-- Calendar View -->
+  <div class="card" id="history-calendar-card" style="display:none;padding:12px;">
+    <!-- Month navigation -->
+    <div class="cal-nav">
+      <button class="cal-nav-btn" onclick="calNavMonth(-1)" title="上个月">&#8249;</button>
+      <span class="cal-nav-label" id="cal-month-label">2026年6月</span>
+      <button class="cal-nav-btn" onclick="calNavMonth(1)" title="下个月">&#8250;</button>
+    </div>
+    <!-- Weekday headers -->
+    <div class="cal-weekdays">
+      <span>一</span><span>二</span><span>三</span><span>四</span><span>五</span><span>六</span><span>日</span>
+    </div>
+    <!-- Calendar grid -->
+    <div class="cal-grid" id="cal-grid"></div>
+    <!-- Legend -->
+    <div class="cal-legend">
+      <span class="cal-legend-item"><span class="cal-dot cal-dot-full"></span> 全部完成</span>
+      <span class="cal-legend-item"><span class="cal-dot cal-dot-partial"></span> 部分完成</span>
+      <span class="cal-legend-item"><span class="cal-dot cal-dot-pending"></span> 待复盘</span>
+      <span class="cal-legend-item"><span class="cal-dot cal-dot-empty"></span> 无记录</span>
+    </div>
+  </div>
+
+  <!-- Calendar tooltip (positioned absolutely) -->
+  <div class="cal-tooltip" id="cal-tooltip" style="display:none;">
+    <div class="cal-tooltip-date" id="cal-tooltip-date"></div>
+    <div class="cal-tooltip-list" id="cal-tooltip-list"></div>
   </div>
 </div>
 </div>
