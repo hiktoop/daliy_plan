@@ -940,3 +940,62 @@ body {
   font-style: italic; overflow: hidden;
   text-overflow: ellipsis; white-space: nowrap;
 }
+
+/* ─── Note Card (Diary/Notes page) ─── */
+
+.note-card {
+  padding: 12px 14px;
+  border: 0.5px solid var(--border);
+  border-radius: 8px;
+  margin-bottom: 8px;
+  background: var(--surface);
+  transition: box-shadow 0.12s;
+}
+.note-card:hover {
+  box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+}
+.note-card + .note-card {
+  margin-top: 2px;
+}
+
+/* Diary preview */
+#diary-preview {
+  max-height: 400px;
+  overflow-y: auto;
+}
+#diary-preview-body h1,
+#diary-preview-body h2,
+#diary-preview-body h3 {
+  margin: 12px 0 6px;
+}
+#diary-preview-body p {
+  margin: 6px 0;
+  line-height: 1.7;
+}
+#diary-preview-body ul,
+#diary-preview-body ol {
+  padding-left: 20px;
+  margin: 6px 0;
+}
+#diary-preview-body code {
+  background: var(--surface-2);
+  padding: 1px 4px;
+  border-radius: 3px;
+  font-size: 0.9em;
+}
+#diary-preview-body pre {
+  background: var(--surface-2);
+  padding: 10px;
+  border-radius: 6px;
+  overflow-x: auto;
+  font-size: 12px;
+  line-height: 1.5;
+}
+#diary-preview-body blockquote {
+  border-left: 3px solid var(--accent);
+  margin: 8px 0;
+  padding: 4px 12px;
+  color: var(--text-2);
+  background: var(--accent-light);
+  border-radius: 0 6px 6px 0;
+}

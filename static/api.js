@@ -124,4 +124,43 @@ const API = {
   async getReviewsOverview() {
     return this._fetch('/api/tasks/reviews/overview');
   },
+
+  // ── Diary ──
+  async getDiary(dateStr) {
+    return this._fetch('/api/diary/' + encodeURIComponent(dateStr));
+  },
+  async saveDiary(dateStr, content) {
+    return this._fetch('/api/diary/' + encodeURIComponent(dateStr), {
+      method: 'POST', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ content: content })
+    });
+  },
+  async deleteDiary(dateStr) {
+    return this._fetch('/api/diary/' + encodeURIComponent(dateStr), { method: 'DELETE' });
+  },
+
+  // ── Notes ──
+  async listNotes(q) {
+    var url = '/api/notes';
+    if (q) url += '?q=' + encodeURIComponent(q);
+    return this._fetch(url);
+  },
+  async createNote(data) {
+    return this._fetch('/api/notes', {
+      method: 'POST', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify(data)
+    });
+  },
+  async getNote(id) {
+    return this._fetch('/api/notes/' + encodeURIComponent(id));
+  },
+  async updateNote(id, data) {
+    return this._fetch('/api/notes/' + encodeURIComponent(id), {
+      method: 'PUT', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify(data)
+    });
+  },
+  async deleteNote(id) {
+    return this._fetch('/api/notes/' + encodeURIComponent(id), { method: 'DELETE' });
+  },
 };

@@ -11,6 +11,7 @@ from backend.routes.plans import router as plans_router
 from backend.routes.stats import router as stats_router
 from backend.routes.pomodoro import router as pomodoro_router
 from backend.routes.habits import router as habits_router
+from backend.routes.notes import router as notes_router
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 STATIC_DIR = BASE_DIR / "static"

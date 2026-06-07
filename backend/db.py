@@ -103,7 +103,34 @@ def init_db():
                 created_at   REAL,
                 updated_at   REAL
             );
+
+            CREATE TABLE IF NOT EXISTS diary (
+                date        TEXT PRIMARY KEY,
+                content     TEXT DEFAULT '',
+                created_at  REAL,
+                updated_at  REAL
+            );
+
+            CREATE TABLE IF NOT EXISTS notes (
+                id          TEXT PRIMARY KEY,
+                title       TEXT NOT NULL DEFAULT '',
+                content     TEXT DEFAULT '',
+                tags        TEXT DEFAULT '[]',
+                created_at  REAL,
+                updated_at  REAL
+            );
         """)
+
+        # Migration: add diary table
+        try:
+            db.execute("SELECT content FROM diary LIMIT 1")
+        except sqlite3.OperationalError:
+            db.execute("CREATE TABLE IF NOT EXISTS diary (date TEXT PRIMARY KEY, content TEXT DEFAULT '', created_at REAL, updated_at REAL)")
+        # Migration: add notes table
+        try:
+            db.execute("SELECT title FROM notes LIMIT 1")
+        except sqlite3.OperationalError:
+            db.execute("CREATE TABLE IF NOT EXISTS notes (id TEXT PRIMARY KEY, title TEXT NOT NULL DEFAULT '', content TEXT DEFAULT '', tags TEXT DEFAULT '[]', created_at REAL, updated_at REAL)")
         # Migration: add status column if missing
         try:
             db.execute("SELECT status FROM plans LIMIT 1")
