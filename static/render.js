@@ -1711,12 +1711,21 @@ async function renderNotesList() {
       return '<span style="font-size:10px;background:var(--accent-light);color:var(--accent-text);padding:1px 6px;border-radius:8px;margin-right:4px;">' + escapeHTML(t) + '</span>';
     }).join('');
     var preview = (n.content || '').replace(/[#*_~`>\[\]\n]/g, '').slice(0, 100);
-    return '<div class="note-card" onclick="editNote(\\'' + n.id + '\\')" style="cursor:pointer;">' +
+    var noteIdAttr = 'data-note-id="' + escapeHTML(n.id) + '"';
+    return '<div class="note-card" ' + noteIdAttr + ' style="cursor:pointer;">' +
       '<div style="font-size:14px;font-weight:500;margin-bottom:4px;">' + escapeHTML(n.title || '（无标题）') + '</div>' +
       '<div style="font-size:11px;color:var(--text-3);margin-bottom:6px;">' + tagsHtml + '</div>' +
       '<div style="font-size:12px;color:var(--text-2);line-height:1.5;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + escapeHTML(preview) + '</div>' +
       '</div>';
   }).join('');
+
+  // Event delegation for note card clicks
+  list._noteClick = list._noteClick || function(e) {
+    var card = e.target.closest('.note-card');
+    if (card) editNote(card.dataset.noteId);
+  };
+  list.removeEventListener('click', list._noteClick);
+  list.addEventListener('click', list._noteClick);
 }
 
 function showNoteEditor(noteId) {

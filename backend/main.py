@@ -28,6 +28,7 @@ app.include_router(plans_router)
 app.include_router(stats_router)
 app.include_router(pomodoro_router)
 app.include_router(habits_router)
+app.include_router(notes_router)
 
 
 @app.get("/")
