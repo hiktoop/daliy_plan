@@ -4,14 +4,14 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>每日任务追踪</title>
-<link rel="stylesheet" href="/static/style.css?v=14">
+<link rel="stylesheet" href="/static/style.css?v=15">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
 <!-- JS modules: loaded in dependency order -->
-<script src="/static/app.js?v=14"></script>
-<script src="/static/api.js?v=14"></script>
-<script src="/static/render.js?v=14"></script>
-  <script src="/static/actions.js?v=14"></script>
-  <script src="/static/quotes.js?v=14"></script>
+<script src="/static/app.js?v=15"></script>
+<script src="/static/api.js?v=15"></script>
+<script src="/static/render.js?v=15"></script>
+  <script src="/static/actions.js?v=15"></script>
+  <script src="/static/quotes.js?v=15"></script>
 </head>
 <body>
 
@@ -25,7 +25,7 @@
     <button class="nav-tab" onclick="switchPage('history')">历史</button>
     <button class="nav-tab" onclick="switchPage('charts')">图表</button>
     <button class="nav-tab" onclick="switchPage('pomodoro')">专注</button>
-    <button class="nav-tab" onclick="switchPage('knowledge')">知识</button>
+    <button class="nav-tab" onclick="switchPage('habits')">习惯</button>
   </nav>
 </header>
 
@@ -270,47 +270,6 @@
     </div>
   </div>
 
-</div>
-</div>
-
-<!-- KNOWLEDGE -->
-<div class="page" id="page-knowledge">
-<div class="main">
-  <div style="display:flex;align-items:center;gap:12px;margin-bottom:20px;">
-    <span style="font-size:15px;font-weight:500;">知识管理</span>
-    <span style="font-size:12px;color:var(--text-3);" id="knowledge-today-label"></span>
-    <button class="btn-save" onclick="showAddKnowledge()" style="margin-left:auto;margin-top:0;font-size:12px;padding:6px 14px;">+ 新增知识</button>
-  </div>
-
-  <!-- Add knowledge form -->
-  <div class="card" id="knowledge-add-card" style="display:none;">
-    <div class="card-title">新增知识点</div>
-    <div style="display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap;">
-      <div style="flex:1;min-width:200px;">
-        <input class="note-field" id="knowledge-add-text" placeholder="输入知识点..." style="min-height:36px;padding:6px 10px;">
-      </div>
-      <div>
-        <button class="pomo-btn pomo-start" onclick="createKnowledge()" style="font-size:12px;padding:6px 16px;">创建</button>
-        <button class="pomo-btn pomo-reset" onclick="cancelAddKnowledge()" style="font-size:12px;padding:6px 12px;">取消</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- Active reviews -->
-  <div class="card" style="margin-bottom:16px;">
-    <div class="card-title">复习中（<span id="knowledge-active-count">0</span>）</div>
-    <div id="knowledge-active-list" class="empty-state" style="padding:20px;">
-      <div class="empty-icon">📚</div>还没有需要复习的知识
-    </div>
-  </div>
-
-  <!-- Graduated -->
-  <div class="card">
-    <div class="card-title">已掌握</div>
-    <div id="knowledge-graduated-list" class="empty-state" style="padding:20px;">
-      <div class="empty-icon">🎓</div>还没有掌握的知识
-    </div>
-  </div>
 </div>
 </div>
 
