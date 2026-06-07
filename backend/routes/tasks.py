@@ -45,12 +45,13 @@ def _inject_reviews(tasks: list, date_str: str) -> list:
             ).fetchall()
         for row in rows:
             src = row["source_url"] if "source_url" in row.keys() else None
+            note = row["evening_note"] if "evening_note" in row.keys() else None
             tasks.insert(0, {
                 "id": "_review_" + row["id"],
                 "text": "复习：" + row["task_text"],
                 "kind": "task",
                 "status": None,
-                "eveningNote": "",
+                "eveningNote": note or "",
                 "plan": None,
                 "itemType": "review",
                 "reviewId": row["id"],
@@ -74,12 +75,13 @@ def _auto_create_reviews(date_str: str, tasks: list):
             start = (date_cls.today() + timedelta(days=1)).isoformat()
             now = _now_ts()
             source_url = getattr(t, 'sourceUrl', None) or ''
+            evening_note = getattr(t, 'eveningNote', None) or ''
             with get_db() as db:
                 db.execute(
                     """INSERT INTO reviews (id, task_text, review_round,
-                       next_review, last_review, status, source_url, created_at, updated_at)
-                       VALUES (?, ?, 0, ?, NULL, 'active', ?, ?, ?)""",
-                    (rid, getattr(t, 'text', ''), start, source_url, now, now),
+                       next_review, last_review, status, source_url, evening_note, created_at, updated_at)
+                       VALUES (?, ?, 0, ?, NULL, 'active', ?, ?, ?, ?)""",
+                    (rid, getattr(t, 'text', ''), start, source_url, evening_note, now, now),
                 )
             try:
                 t.reviewId = rid
@@ -109,9 +111,9 @@ def create_review(body: ReviewCreate):
     with get_db() as db:
         db.execute(
             """INSERT INTO reviews (id, task_text, review_round,
-               next_review, last_review, status, source_url, created_at, updated_at)
-               VALUES (?, ?, 0, ?, NULL, 'active', ?, ?, ?)""",
-            (rid, body.task_text, start, body.source_url or '', now, now),
+               next_review, last_review, status, source_url, evening_note, created_at, updated_at)
+               VALUES (?, ?, 0, ?, NULL, 'active', ?, ?, ?, ?)""",
+            (rid, body.task_text, start, body.source_url or '', body.evening_note or '', now, now),
         )
     return {"ok": True, "reviewId": rid, "nextReview": start}
 
@@ -167,6 +169,7 @@ def _row_to_review(row) -> dict:
         "lastReview": row["last_review"],
         "status": row["status"],
         "sourceUrl": row["source_url"] if "source_url" in row.keys() and row["source_url"] else None,
+        "eveningNote": row["evening_note"] if "evening_note" in row.keys() and row["evening_note"] else None,
     }
 
 

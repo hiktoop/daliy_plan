@@ -230,6 +230,22 @@ function renderMorningItem(ul, task, index, data, streaks, savedMorning) {
 
   content.appendChild(inputRow);
 
+  // Ebbinghaus schedule for knowledge tasks
+  if (task.itemType === 'knowledge') {
+    const scheduleRow = document.createElement('div');
+    scheduleRow.className = 'ebbinghaus-schedule';
+    const intervals = [1, 2, 4, 7, 15, 30];
+    const today = new Date(currentDate + 'T00:00:00');
+    const dayNames = intervals.map(function(d, i) {
+      var rd = new Date(today); rd.setDate(today.getDate() + d);
+      var rds = rd.toISOString().slice(0, 10);
+      return '<span class="eb-round" title="第' + (i + 1) + '轮复习：' + rds + '">' + d + '天</span>';
+    }).join('<span class="eb-arrow">→</span>');
+    scheduleRow.innerHTML = '📚 ' + dayNames;
+    scheduleRow.title = '艾宾浩斯遗忘曲线：完成此知识任务后，将按此时间表自动安排复习';
+    content.appendChild(scheduleRow);
+  }
+
   // Plan buttons
   const planRow = document.createElement('div');
   planRow.className = 'plan-group';
@@ -311,6 +327,13 @@ function renderEveningForm(data) {
       tag.textContent = PLAN_META[task.plan].icon + ' ' + PLAN_META[task.plan].label;
       label.appendChild(tag);
     }
+    if (task.itemType === 'knowledge') {
+      const kbTag = document.createElement('span');
+      kbTag.className = 'plan-tag';
+      kbTag.style.cssText = 'background:#fff8e1;color:#f0a030;border-color:#f0d060;';
+      kbTag.textContent = '📚 知识';
+      label.appendChild(kbTag);
+    }
     content.appendChild(label);
     const statusGroup = document.createElement('div');
     statusGroup.className = 'status-group';
@@ -333,6 +356,21 @@ function renderEveningForm(data) {
       statusGroup.appendChild(btn);
     });
     content.appendChild(statusGroup);
+
+    // Per-task evening note
+    const noteWrap = document.createElement('div');
+    noteWrap.style.cssText = 'margin-top:8px;';
+    const noteInput = document.createElement('textarea');
+    noteInput.className = 'evening-task-note';
+    noteInput.placeholder = '备注（可选）…';
+    noteInput.rows = 1;
+    noteInput.value = task.eveningNote || '';
+    noteInput.addEventListener('input', function() {
+      this.style.height = 'auto'; this.style.height = this.scrollHeight + 'px';
+    });
+    noteWrap.appendChild(noteInput);
+    content.appendChild(noteWrap);
+
     li.appendChild(num); li.appendChild(content);
     ul.appendChild(li);
   }
@@ -411,6 +449,14 @@ function renderEveningSummary(data) {
       chip.className = 'chip chip-' + (t.status || 'none');
       chip.textContent = (t.text||'').length > 16 ? t.text.slice(0,15)+'…' : t.text;
       chip.title = t.text; tRow.appendChild(chip);
+      // Show per-task evening note if exists
+      if (t.eveningNote && t.eveningNote.trim()) {
+        const noteSpan = document.createElement('span');
+        noteSpan.style.cssText = 'font-size:10px;color:var(--text-3);margin-left:2px;';
+        noteSpan.textContent = '💬';
+        noteSpan.title = t.eveningNote;
+        tRow.appendChild(noteSpan);
+      }
     });
     chipsEl.appendChild(tRow);
   }
@@ -1170,11 +1216,17 @@ function renderReviewSection(reviewTasks) {
         'class="review-url-link" onclick="event.stopPropagation()" ' +
         'title="打开学习资料">🔗 原文</a>';
     }
+    // Show evening note if exists
+    var noteHtml = '';
+    if (r.eveningNote && r.eveningNote.trim()) {
+      noteHtml = '<div class="review-note">💬 ' + escapeHTML(r.eveningNote) + '</div>';
+    }
     return '<div class="review-item" onclick="completeReview(\'' + r.reviewId + '\')" title="点击标记复习完成">' +
       '<span class="review-tag">复习</span>' +
       '<span class="review-text">' + escapeHTML(r.text.replace('复习：', '')) + '</span>' +
       urlLink +
       '<span class="review-round">' + roundLabel + '</span>' +
+      noteHtml +
       '</div>';
   }).join('');
 }

@@ -109,8 +109,13 @@ def init_db():
             db.execute("SELECT status FROM plans LIMIT 1")
         except sqlite3.OperationalError:
             db.execute("ALTER TABLE plans ADD COLUMN status TEXT DEFAULT 'active'")
-        # Migration: add source_url column to reviews
+            # Migration: add source_url column to reviews
         try:
             db.execute("SELECT source_url FROM reviews LIMIT 1")
         except sqlite3.OperationalError:
             db.execute("ALTER TABLE reviews ADD COLUMN source_url TEXT DEFAULT ''")
+        # Migration: add evening_note column to reviews
+        try:
+            db.execute("SELECT evening_note FROM reviews LIMIT 1")
+        except sqlite3.OperationalError:
+            db.execute("ALTER TABLE reviews ADD COLUMN evening_note TEXT DEFAULT ''")

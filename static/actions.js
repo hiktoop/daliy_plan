@@ -127,6 +127,11 @@ async function saveEvening() {
       else if (sel.classList.contains('selected-partial')) t.status = 'partial';
       else if (sel.classList.contains('selected-miss')) t.status = 'miss';
     }
+    // Collect per-task evening note
+    const noteInput = li.querySelector('.evening-task-note');
+    if (noteInput) {
+      t.eveningNote = noteInput.value;
+    }
   });
   d.eveningNote = document.getElementById('evening-note').value;
   d.savedEvening = true;

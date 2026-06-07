@@ -27,12 +27,14 @@ class ReviewItem(BaseModel):
     last_review: str | None = None
     status: str = "active"  # "active" | "graduated" | "deleted"
     source_url: str | None = None
+    evening_note: str | None = None  # 复习备注（来自晚间复盘）
 
 
 class ReviewCreate(BaseModel):
     task_text: str
     start_date: str | None = None  # 首次复习日期，默认明天
     source_url: str | None = None   # 来源链接
+    evening_note: str | None = None  # 复习备注
 
 
 class DayData(BaseModel):
