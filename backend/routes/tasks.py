@@ -94,6 +94,78 @@ def list_days():
     return {"days": [_row_to_day(r) for r in rows]}
 
 
+# ─── Review endpoints (Ebbinghaus) ───
+
+@router.post("/review")
+def create_review(body: ReviewCreate):
+    """Manually create a review record."""
+    from backend.services.plan_service import _uid
+    rid = _uid()
+    start = body.start_date or (date_cls.today() + timedelta(days=1)).isoformat()
+    now = _now_ts()
+    with get_db() as db:
+        db.execute(
+            """INSERT INTO reviews (id, task_text, review_round,
+               next_review, last_review, status, created_at, updated_at)
+               VALUES (?, ?, 0, ?, NULL, 'active', ?, ?)""",
+            (rid, body.task_text, start, now, now),
+        )
+    return {"ok": True, "reviewId": rid, "nextReview": start}
+
+
+@router.get("/reviews/due")
+def get_due_reviews(date_str: str | None = None):
+    """List reviews due on or before the given date (default: today)."""
+    d = date_str or date_cls.today().isoformat()
+    with get_db() as db:
+        rows = db.execute(
+            "SELECT * FROM reviews WHERE status='active' AND next_review<=? ORDER BY next_review",
+            (d,),
+        ).fetchall()
+    return {"reviews": [_row_to_review(r) for r in rows]}
+
+
+@router.post("/review/{review_id}/done")
+def mark_review_done(review_id: str):
+    """Mark a review as done; schedule next round or graduate."""
+    now_dt = date_cls.today()
+    with get_db() as db:
+        row = db.execute("SELECT * FROM reviews WHERE id=?", (review_id,)).fetchone()
+        if not row:
+            return {"error": "not found"}
+        rnd = row["review_round"] + 1
+        if rnd >= len(EBBINGHAUS_INTERVALS):
+            db.execute("UPDATE reviews SET status='graduated', updated_at=? WHERE id=?",
+                      (_now_ts(), review_id))
+            return {"ok": True, "status": "graduated"}
+        next_d = (now_dt + timedelta(days=EBBINGHAUS_INTERVALS[rnd])).isoformat()
+        db.execute(
+            "UPDATE reviews SET review_round=?, last_review=?, next_review=?, updated_at=? WHERE id=?",
+            (rnd, now_dt.isoformat(), next_d, _now_ts(), review_id),
+        )
+    return {"ok": True, "nextReview": next_d, "round": rnd}
+
+
+@router.delete("/review/{review_id}")
+def delete_review(review_id: str):
+    """Delete (graduate) a review."""
+    with get_db() as db:
+        db.execute("UPDATE reviews SET status='deleted', updated_at=? WHERE id=?",
+                  (_now_ts(), review_id))
+    return {"ok": True}
+
+
+def _row_to_review(row) -> dict:
+    return {
+        "id": row["id"],
+        "taskText": row["task_text"],
+        "reviewRound": row["review_round"],
+        "nextReview": row["next_review"],
+        "lastReview": row["last_review"],
+        "status": row["status"],
+    }
+
+
 @router.get("/{date_str}")
 def get_day(date_str: str):
     """Get a single day's data. Inject due reviews."""
@@ -175,73 +247,3 @@ def save_day(date_str: str, payload: SaveDayPayload):
     return {"ok": True, "date": date_str}
 
 
-# ─── Review endpoints (Ebbinghaus) ───
-
-@router.post("/review")
-def create_review(body: ReviewCreate):
-    """Manually create a review record."""
-    from backend.services.plan_service import _uid
-    rid = _uid()
-    start = body.start_date or (date_cls.today() + timedelta(days=1)).isoformat()
-    now = _now_ts()
-    with get_db() as db:
-        db.execute(
-            """INSERT INTO reviews (id, task_text, review_round,
-               next_review, last_review, status, created_at, updated_at)
-               VALUES (?, ?, 0, ?, NULL, 'active', ?, ?)""",
-            (rid, body.task_text, start, now, now),
-        )
-    return {"ok": True, "reviewId": rid, "nextReview": start}
-
-
-@router.get("/reviews/due")
-def get_due_reviews(date_str: str | None = None):
-    """List reviews due on or before the given date (default: today)."""
-    d = date_str or date_cls.today().isoformat()
-    with get_db() as db:
-        rows = db.execute(
-            "SELECT * FROM reviews WHERE status='active' AND next_review<=? ORDER BY next_review",
-            (d,),
-        ).fetchall()
-    return {"reviews": [_row_to_review(r) for r in rows]}
-
-
-@router.post("/review/{review_id}/done")
-def mark_review_done(review_id: str):
-    """Mark a review as done; schedule next round or graduate."""
-    now_dt = date_cls.today()
-    with get_db() as db:
-        row = db.execute("SELECT * FROM reviews WHERE id=?", (review_id,)).fetchone()
-        if not row:
-            return {"error": "not found"}
-        rnd = row["review_round"] + 1
-        if rnd >= len(EBBINGHAUS_INTERVALS):
-            db.execute("UPDATE reviews SET status='graduated', updated_at=? WHERE id=?",
-                      (_now_ts(), review_id))
-            return {"ok": True, "status": "graduated"}
-        next_d = (now_dt + timedelta(days=EBBINGHAUS_INTERVALS[rnd])).isoformat()
-        db.execute(
-            "UPDATE reviews SET review_round=?, last_review=?, next_review=?, updated_at=? WHERE id=?",
-            (rnd, now_dt.isoformat(), next_d, _now_ts(), review_id),
-        )
-    return {"ok": True, "nextReview": next_d, "round": rnd}
-
-
-@router.delete("/review/{review_id}")
-def delete_review(review_id: str):
-    """Delete (graduate) a review."""
-    with get_db() as db:
-        db.execute("UPDATE reviews SET status='deleted', updated_at=? WHERE id=?",
-                  (_now_ts(), review_id))
-    return {"ok": True}
-
-
-def _row_to_review(row) -> dict:
-    return {
-        "id": row["id"],
-        "taskText": row["task_text"],
-        "reviewRound": row["review_round"],
-        "nextReview": row["next_review"],
-        "lastReview": row["last_review"],
-        "status": row["status"],
-    }
