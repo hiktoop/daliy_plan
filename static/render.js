@@ -245,32 +245,22 @@ function renderMorningItem(ul, task, index, data, streaks, savedMorning) {
 
   content.appendChild(inputRow);
 
-  // Ebbinghaus schedule for knowledge tasks
-  if (task.itemType === 'knowledge') {
-    const scheduleRow = document.createElement('div');
-    scheduleRow.className = 'ebbinghaus-schedule';
-    const intervals = [1, 2, 4, 7, 15, 30];
-    const today = new Date(currentDate + 'T00:00:00');
-    const dayNames = intervals.map(function(d, i) {
-      var rd = new Date(today); rd.setDate(today.getDate() + d);
-      var rds = rd.toISOString().slice(0, 10);
-      return '<span class="eb-round" title="第' + (i + 1) + '轮复习：' + rds + '">' + d + '天</span>';
-    }).join('<span class="eb-arrow">→</span>');
-    scheduleRow.innerHTML = '📚 ' + dayNames;
-    scheduleRow.title = '艾宾浩斯遗忘曲线：完成此知识任务后，将按此时间表自动安排复习';
-    content.appendChild(scheduleRow);
-  }
-
   // Type toggle (知识/事项) — replaces old plan buttons
   const typeRow = document.createElement('div');
   typeRow.className = 'type-group';
   if (readOnly) {
-    // Read-only: show type tag
+    // Read-only: show type tag + compact schedule
     if (task.itemType === 'knowledge') {
       var kTag = document.createElement('span');
       kTag.className = 'type-tag knowledge-tag';
       kTag.textContent = '📚 知识';
       typeRow.appendChild(kTag);
+      // Compact Ebbinghaus schedule inline
+      var sched = document.createElement('span');
+      sched.className = 'eb-compact';
+      sched.textContent = '（1/2/4/7/15/30天）';
+      sched.title = '艾宾浩斯复习时间表：完成后按此安排复习';
+      typeRow.appendChild(sched);
     } else {
       var tTag = document.createElement('span');
       tTag.className = 'type-tag task-tag';
@@ -291,6 +281,13 @@ function renderMorningItem(ul, task, index, data, streaks, savedMorning) {
     kBtn.textContent = '📚 知识';
     kBtn.onclick = function() { toggleTaskType(task.id, 'knowledge'); };
     typeRow.appendChild(kBtn);
+    if (isKnowledge) {
+      var sched = document.createElement('span');
+      sched.className = 'eb-compact';
+      sched.textContent = '（1/2/4/7/15/30天）';
+      sched.title = '艾宾浩斯复习时间表';
+      typeRow.appendChild(sched);
+    }
   }
   content.appendChild(typeRow);
 
