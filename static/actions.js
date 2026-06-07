@@ -160,7 +160,8 @@ async function pomoStart() {
   }).then(r => r.json());
 
   pomoState.sessionId = res.id;
-  pomoState.startTs = res.start_ts;
+  // 用浏览器本地时间作为计时基准，避免服务器与客户端时钟不同步导致负数
+  pomoState.startTs = Date.now() / 1000;
   pomoState.elapsed = 0;
   pomoState.running = true;
   pomoState.paused = false;
