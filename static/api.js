@@ -186,3 +186,5 @@ const API = {
     return this._fetch('/api/notes/' + encodeURIComponent(id), { method: 'DELETE' });
   },
 };
+
+window.API = API;

@@ -45,11 +45,8 @@
 </template>
 
 <script>
-import FolderTreeItem from './FolderTreeItem.vue'
-
 export default {
   name: 'FolderTreeItem',
-  components: { FolderTreeItem },
   inject: ['expandedFolders'],
   props: {
     node: { type: Object, required: true },
