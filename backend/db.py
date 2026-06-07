@@ -119,3 +119,16 @@ def init_db():
             db.execute("SELECT evening_note FROM reviews LIMIT 1")
         except sqlite3.OperationalError:
             db.execute("ALTER TABLE reviews ADD COLUMN evening_note TEXT DEFAULT ''")
+        # Migration: add SM-2 dynamic interval columns to reviews
+        try:
+            db.execute("SELECT ease_factor FROM reviews LIMIT 1")
+        except sqlite3.OperationalError:
+            db.execute("ALTER TABLE reviews ADD COLUMN ease_factor REAL DEFAULT 2.5")
+        try:
+            db.execute("SELECT repetitions FROM reviews LIMIT 1")
+        except sqlite3.OperationalError:
+            db.execute("ALTER TABLE reviews ADD COLUMN repetitions INTEGER DEFAULT 0")
+        try:
+            db.execute("SELECT interval FROM reviews LIMIT 1")
+        except sqlite3.OperationalError:
+            db.execute("ALTER TABLE reviews ADD COLUMN interval INTEGER DEFAULT 1")

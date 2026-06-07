@@ -4,14 +4,14 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>每日任务追踪</title>
-<link rel="stylesheet" href="/static/style.css?v=20">
+<link rel="stylesheet" href="/static/style.css?v=21">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
 <!-- JS modules: loaded in dependency order -->
-<script src="/static/app.js?v=20"></script>
-<script src="/static/api.js?v=20"></script>
-<script src="/static/render.js?v=20"></script>
-  <script src="/static/actions.js?v=20"></script>
-  <script src="/static/quotes.js?v=20"></script>
+<script src="/static/app.js?v=21"></script>
+<script src="/static/api.js?v=21"></script>
+<script src="/static/render.js?v=21"></script>
+  <script src="/static/actions.js?v=21"></script>
+  <script src="/static/quotes.js?v=21"></script>
 </head>
 <body>
 
@@ -26,6 +26,7 @@
     <button class="nav-tab" onclick="switchPage('charts')">图表</button>
     <button class="nav-tab" onclick="switchPage('pomodoro')">专注</button>
     <button class="nav-tab" onclick="switchPage('habits')">习惯</button>
+    <button class="nav-tab" onclick="switchPage('knowledge')">知识</button>
   </nav>
 </header>
 
@@ -344,6 +345,48 @@
 </div>
 </div>
 
+<!-- KNOWLEDGE OVERVIEW -->
+<div class="page" id="page-knowledge">
+<div class="main">
+  <div style="display:flex;align-items:center;gap:12px;margin-bottom:20px;">
+    <span style="font-size:15px;font-weight:500;">知识总览</span>
+    <span style="font-size:12px;color:var(--text-3);" id="knowledge-overview-stats"></span>
+  </div>
+
+  <!-- Stats row -->
+  <div class="progress-row" id="knowledge-stats-row" style="margin-bottom:16px;"></div>
+
+  <!-- Three columns: learning / reviewing / graduated -->
+  <div class="knowledge-cols" id="knowledge-cols">
+    <!-- 📖 初学 -->
+    <div class="card">
+      <div class="card-title">📖 初学<span id="k-learning-count" style="font-size:11px;color:var(--text-3);margin-left:6px;"></span></div>
+      <div id="k-learning-list"></div>
+    </div>
+    <!-- 🔄 巩固 -->
+    <div class="card">
+      <div class="card-title">🔄 巩固<span id="k-reviewing-count" style="font-size:11px;color:var(--text-3);margin-left:6px;"></span></div>
+      <div id="k-reviewing-list"></div>
+    </div>
+    <!-- 🎓 已毕业 -->
+    <div class="card">
+      <div class="card-title" style="cursor:pointer;" onclick="var el=document.getElementById('k-graduated-list');el.style.display=el.style.display==='none'?'':'none';">
+        🎓 已毕业<span id="k-graduated-count" style="font-size:11px;color:var(--text-3);margin-left:6px;"></span>
+        <span style="font-size:10px;color:var(--text-3);margin-left:auto;">点击折叠</span>
+      </div>
+      <div id="k-graduated-list"></div>
+    </div>
+  </div>
+
+  <!-- Empty state -->
+  <div id="knowledge-empty" class="empty-state" style="display:none;">
+    <div class="empty-icon">📚</div>
+    还没有知识记录<br>
+    <span style="font-size:12px;color:var(--text-3);">在"今日"页面添加知识类型事项，完成复习后会自动出现在这里</span>
+  </div>
+</div>
+</div>
+
 <!-- CHARTS -->
 <div class="page" id="page-charts">
 <div class="main">
@@ -380,7 +423,7 @@
     <div style="font-size:11px;color:var(--text-3);margin-top:8px;text-align:center;">
       <span style="color:#a32d2d;">红色虚线</span> = 不复习的遗忘曲线 · 
       <span style="color:#3b6d11;">绿色实线</span> = 按时复习的记忆保持 · 
-      竖线 = 复习节点（1/2/4/7/15/30 天）
+      竖线 = 复习节点（SM-2 动态间隔）
     </div>
   </div>
 </div>

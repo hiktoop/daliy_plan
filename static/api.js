@@ -104,7 +104,7 @@ const API = {
     return this._fetch('/api/habits/heatmap?days=' + (days||84));
   },
 
-  // ── Reviews (Ebbinghaus) ──
+  // ── Reviews (Ebbinghaus + SM-2) ──
   async createReview(taskText) {
     return this._fetch('/api/tasks/review', {
       method: 'POST', headers: {'Content-Type':'application/json'},
@@ -114,10 +114,14 @@ const API = {
   async getDueReviews(dateStr) {
     return this._fetch('/api/tasks/reviews/due?date_str=' + encodeURIComponent(dateStr || todayStr()));
   },
-  async markReviewDone(reviewId) {
-    return this._fetch('/api/tasks/review/' + reviewId + '/done', { method: 'POST' });
+  async markReviewDone(reviewId, quality) {
+    var q = (quality !== undefined) ? quality : 5;
+    return this._fetch('/api/tasks/review/' + reviewId + '/done?quality=' + q, { method: 'POST' });
   },
   async deleteReview(reviewId) {
     return this._fetch('/api/tasks/review/' + reviewId, { method: 'DELETE' });
-  }
+  },
+  async getReviewsOverview() {
+    return this._fetch('/api/tasks/reviews/overview');
+  },
 };

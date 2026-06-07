@@ -811,6 +811,54 @@ body {
   }
 }
 
+/* ─── Knowledge Overview ─── */
+
+.knowledge-cols {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+}
+
+.knowledge-cols .card {
+  margin-bottom: 0;
+  padding: 14px 16px;
+}
+
+@media (max-width: 800px) {
+  .knowledge-cols {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ─── Review Feedback Buttons ─── */
+
+.review-feedback {
+  display: flex; gap: 6px; margin-top: 4px;
+  padding-top: 4px; width: 100%;
+}
+
+.review-btn {
+  padding: 3px 10px; border-radius: 12px; border: 0.5px solid var(--border-md);
+  cursor: pointer; font-size: 11px; font-family: inherit;
+  transition: all 0.12s; background: var(--surface);
+}
+
+.review-btn.review-remember { color: var(--accent-text); }
+.review-btn.review-remember:hover { background: var(--accent-light); border-color: var(--accent); }
+.review-btn.review-forgot  { color: var(--danger); }
+.review-btn.review-forgot:hover  { background: var(--danger-light); border-color: var(--danger); }
+
+.review-btn-mini {
+  padding: 2px 7px; border-radius: 10px; border: 0.5px solid var(--border-md);
+  cursor: pointer; font-size: 11px; font-family: inherit;
+  background: var(--surface); transition: all 0.12s;
+  line-height: 1.4;
+}
+.review-btn-mini.review-remember { color: var(--accent-text); }
+.review-btn-mini.review-remember:hover { background: var(--accent-light); border-color: var(--accent); }
+.review-btn-mini.review-forgot  { color: var(--danger); }
+.review-btn-mini.review-forgot:hover  { background: var(--danger-light); border-color: var(--danger); }
+
 /* ─── Section Divider (between 知识 and 事项) ─── */
 
 .section-divider {

@@ -1,18 +1,42 @@
-"""Routes: /api/tasks — daily task CRUD + Ebbinghaus reviews."""
+"""Routes: /api/tasks — daily task CRUD + Ebbinghaus reviews with SM-2 dynamic intervals."""
 
 import json
+import math
 import time
 from datetime import date as date_cls, timedelta
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Query
 from backend.db import get_db
 from backend.models import SaveDayPayload, TaskItem, ReviewItem, ReviewCreate
 from backend.services.plan_service import get_active_plans, _uid
 
 router = APIRouter(prefix="/api/tasks", tags=["tasks"])
 
-# ── Ebbinghaus intervals (days after previous review) ──
-EBBINGHAUS_INTERVALS = [1, 2, 4, 7, 15, 30]  # 6 rounds total
+# ── SM-2 Spaced Repetition Algorithm ──
+
+def _sm2_calc(quality: int, ease_factor: float, repetitions: int, interval: int):
+    """SM-2 algorithm: calculate new ease_factor, repetitions, interval.
+    
+    quality: 0-5 (0=complete blackout, 5=perfect recall)
+    Returns: (new_ease_factor, new_repetitions, new_interval)
+    """
+    if quality < 3:
+        # Forgot → reset
+        repetitions = 0
+        interval = 1
+    else:
+        if repetitions == 0:
+            interval = 1
+        elif repetitions == 1:
+            interval = 6
+        else:
+            interval = round(interval * ease_factor)
+        repetitions += 1
+    
+    ease_factor = ease_factor + (0.1 - (5 - quality) * (0.08 + (5 - quality) * 0.02))
+    ease_factor = max(1.3, ease_factor)
+    
+    return ease_factor, repetitions, interval
 
 
 def _now_ts() -> float:
@@ -131,24 +155,37 @@ def get_due_reviews(date_str: str | None = None):
 
 
 @router.post("/review/{review_id}/done")
-def mark_review_done(review_id: str):
-    """Mark a review as done; schedule next round or graduate."""
+def mark_review_done(review_id: str, quality: int = Query(5, ge=0, le=5)):
+    """Mark a review as done; schedule next round or graduate using SM-2 algorithm.
+    
+    quality: 5=完美记得, 3=勉强记得, 1=忘了
+    """
     now_dt = date_cls.today()
     with get_db() as db:
         row = db.execute("SELECT * FROM reviews WHERE id=?", (review_id,)).fetchone()
         if not row:
             return {"error": "not found"}
         rnd = row["review_round"] + 1
-        if rnd >= len(EBBINGHAUS_INTERVALS):
-            db.execute("UPDATE reviews SET status='graduated', updated_at=? WHERE id=?",
-                      (_now_ts(), review_id))
-            return {"ok": True, "status": "graduated"}
-        next_d = (now_dt + timedelta(days=EBBINGHAUS_INTERVALS[rnd])).isoformat()
+        # Read SM-2 fields (graceful fallback for old rows)
+        ef = row["ease_factor"] if "ease_factor" in row.keys() and row["ease_factor"] is not None else 2.5
+        reps = row["repetitions"] if "repetitions" in row.keys() and row["repetitions"] is not None else 0
+        ivl = row["interval"] if "interval" in row.keys() and row["interval"] is not None else 1
+        
+        # 6 rounds max → graduate
+        if rnd >= 6:
+            db.execute("UPDATE reviews SET status='graduated', review_round=?, updated_at=? WHERE id=?",
+                      (rnd, _now_ts(), review_id))
+            return {"ok": True, "status": "graduated", "round": rnd}
+        
+        # SM-2 calculation
+        ef, reps, ivl = _sm2_calc(quality, ef, reps, ivl)
+        next_d = (now_dt + timedelta(days=ivl)).isoformat()
         db.execute(
-            "UPDATE reviews SET review_round=?, last_review=?, next_review=?, updated_at=? WHERE id=?",
-            (rnd, now_dt.isoformat(), next_d, _now_ts(), review_id),
+            """UPDATE reviews SET review_round=?, last_review=?, next_review=?,
+               ease_factor=?, repetitions=?, interval=?, updated_at=? WHERE id=?""",
+            (rnd, now_dt.isoformat(), next_d, round(ef, 4), reps, ivl, _now_ts(), review_id),
         )
-    return {"ok": True, "nextReview": next_d, "round": rnd}
+    return {"ok": True, "nextReview": next_d, "round": rnd, "interval": ivl}
 
 
 @router.delete("/review/{review_id}")
@@ -161,7 +198,7 @@ def delete_review(review_id: str):
 
 
 def _row_to_review(row) -> dict:
-    return {
+    result = {
         "id": row["id"],
         "taskText": row["task_text"],
         "reviewRound": row["review_round"],
@@ -170,6 +207,40 @@ def _row_to_review(row) -> dict:
         "status": row["status"],
         "sourceUrl": row["source_url"] if "source_url" in row.keys() and row["source_url"] else None,
         "eveningNote": row["evening_note"] if "evening_note" in row.keys() and row["evening_note"] else None,
+    }
+    # SM-2 fields (graceful fallback for old rows)
+    result["easeFactor"] = row["ease_factor"] if "ease_factor" in row.keys() and row["ease_factor"] is not None else 2.5
+    result["repetitions"] = row["repetitions"] if "repetitions" in row.keys() and row["repetitions"] is not None else 0
+    result["interval"] = row["interval"] if "interval" in row.keys() and row["interval"] is not None else 1
+    return result
+
+
+@router.get("/reviews/overview")
+def get_reviews_overview():
+    """Knowledge overview: all reviews grouped by learning stage."""
+    with get_db() as db:
+        rows = db.execute(
+            "SELECT * FROM reviews WHERE status IN ('active','graduated') ORDER BY next_review ASC"
+        ).fetchall()
+    
+    reviews = [_row_to_review(r) for r in rows]
+    
+    # Group by stage
+    learning = [r for r in reviews if r["status"] == "active" and r["reviewRound"] <= 1]
+    reviewing = [r for r in reviews if r["status"] == "active" and r["reviewRound"] >= 2]
+    graduated = [r for r in reviews if r["status"] == "graduated"]
+    
+    return {
+        "learning": learning,
+        "reviewing": reviewing,
+        "graduated": graduated,
+        "stats": {
+            "total": len(reviews),
+            "learning": len(learning),
+            "reviewing": len(reviewing),
+            "graduated": len(graduated),
+            "dueToday": len([r for r in reviews if r["status"] == "active" and r["nextReview"] <= date_cls.today().isoformat()]),
+        },
     }
 
 

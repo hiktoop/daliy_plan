@@ -78,7 +78,7 @@ async function switchPage(name) {
   document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
   document.getElementById('page-'+name).classList.add('active');
   const tabs = document.querySelectorAll('.nav-tab');
-  const map = { today: 0, history: 1, charts: 2, pomodoro: 3, habits: 4 };
+  const map = { today: 0, history: 1, charts: 2, pomodoro: 3, habits: 4, knowledge: 5 };
   if (map[name] !== undefined) tabs[map[name]].classList.add('active');
   if (name === 'history') await renderHistory();
   if (name === 'charts') await renderCharts();
@@ -88,6 +88,7 @@ async function switchPage(name) {
   }
   if (name === 'pomodoro') await renderPomodoro();
   if (name === 'habits') await renderHabits();
+  if (name === 'knowledge') await renderKnowledgeOverview();
 }
 
 /* ═══════ Toast ═══════ */

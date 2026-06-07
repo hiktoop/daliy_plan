@@ -380,13 +380,15 @@ async function archiveHabit(habitId) {
 
 /* ─── Review Actions ─── */
 
-async function completeReview(reviewId) {
+async function completeReview(reviewId, quality) {
   try {
-    var res = await API.markReviewDone(reviewId);
+    var q = quality || 5;
+    var res = await API.markReviewDone(reviewId, q);
     if (res.status === 'graduated') {
       showToast('🎓 已掌握！6轮复习完成');
     } else {
-      showToast('复习完成 ✓ · 下次：' + res.nextReview);
+      var label = quality === 1 ? '已标记为忘了' : (quality === 3 ? '勉强记得' : '复习完成 ✓');
+      showToast(label + ' · 下次：' + res.nextReview + '（' + res.interval + '天后）');
     }
     await renderToday();
   } catch(e) {
@@ -394,12 +396,20 @@ async function completeReview(reviewId) {
   }
 }
 
+function reviewRemember(reviewId) {
+  completeReview(reviewId, 5);
+}
+
+function reviewForgot(reviewId) {
+  completeReview(reviewId, 1);
+}
+
 async function deleteReview(reviewId) {
   if (!confirm('确定删除这个复习计划？')) return;
   try {
     await API.deleteReview(reviewId);
     showToast('已删除');
-    await renderKnowledge();
+    await renderKnowledgeOverview();
   } catch(e) {
     showToast('删除失败');
   }
@@ -425,7 +435,7 @@ async function createKnowledge() {
     document.getElementById('knowledge-add-text').value = '';
     document.getElementById('knowledge-add-card').style.display = 'none';
     showToast('知识已创建 ✓ · 明天开始复习');
-    await renderKnowledge();
+    await renderKnowledgeOverview();
   } catch(e) {
     showToast('创建失败');
   }
