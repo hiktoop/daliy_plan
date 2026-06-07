@@ -89,7 +89,7 @@ async function switchPage(name) {
   if (name === 'pomodoro') await renderPomodoro();
   if (name === 'habits') await renderHabits();
   if (name === 'knowledge') await renderKnowledgeOverview();
-  if (name === 'diary') { if (window.nbVue) window.nbVue.loadTree(); }
+  if (name === 'diary') { if (window.nbVue) { window.nbVue.loadTree(); window.nbVue.showDiary(); } }
 }
 
 /* ═══════ Toast ═══════ */
