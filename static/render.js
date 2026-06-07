@@ -143,7 +143,22 @@ async function renderMorningTasks(ul, data, savedMorning) {
     const plansRes = await API.getPlans();
     plansRes.plans.forEach(p => { streaks[p.id] = p.streak || {}; });
   } catch(e) {}
-  (data.morningTasks||[]).forEach((task, i) => renderMorningItem(ul, task, i, data, streaks, savedMorning));
+  // Split into knowledge / regular for grouped display
+  var all = data.morningTasks || [];
+  var knowledgeTasks = all.filter(function(t) { return t.itemType === 'knowledge'; });
+  var regularTasks = all.filter(function(t) { return t.itemType !== 'knowledge'; });
+
+  function addSection(label, tasks) {
+    if (tasks.length === 0) return;
+    var sep = document.createElement('div');
+    sep.className = 'section-label';
+    sep.textContent = label;
+    ul.appendChild(sep);
+    tasks.forEach(function(task, i) { renderMorningItem(ul, task, i, data, streaks, savedMorning); });
+  }
+
+  addSection('📚 知识', knowledgeTasks);
+  addSection('📋 事项', regularTasks);
 }
 
 function renderMorningItem(ul, task, index, data, streaks, savedMorning) {
@@ -296,8 +311,10 @@ function renderEveningForm(data) {
   const realTasks = (data.morningTasks||[]).filter(t => (t.text||'').trim());
   const habits = realTasks.filter(t => (t.kind||'task') === 'habit');
   const tasks = realTasks.filter(t => (t.kind||'task') !== 'habit');
+  const knowledgeTasks = tasks.filter(t => t.itemType === 'knowledge');
+  const plainTasks = tasks.filter(t => t.itemType !== 'knowledge');
 
-  function renderOne(task) {
+  function renderOne(task, idx) {
     const li = document.createElement('li');
     li.className = 'task-item' + ((task.kind||'task') === 'habit' ? ' task-habit' : '');
     li.dataset.id = task.id;
@@ -308,7 +325,7 @@ function renderEveningForm(data) {
       num.title = '习惯';
       num.style.cssText = 'min-width:22px;height:22px;display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0;margin-top:2px;';
     } else {
-      num.textContent = tasks.indexOf(task) + 1;
+      num.textContent = idx + 1;
     }
     const content = document.createElement('div');
     content.className = 'task-content';
@@ -367,14 +384,21 @@ function renderEveningForm(data) {
     sep.className = 'section-label';
     sep.textContent = '🌀 习惯';
     ul.appendChild(sep);
-    habits.forEach(t => renderOne(t));
+    habits.forEach(t => renderOne(t, habits.indexOf(t)));
   }
-  if (tasks.length > 0) {
+  if (knowledgeTasks.length > 0) {
+    const sep = document.createElement('div');
+    sep.className = 'section-label';
+    sep.textContent = '📚 知识';
+    ul.appendChild(sep);
+    knowledgeTasks.forEach(function(t, i) { renderOne(t, i); });
+  }
+  if (plainTasks.length > 0) {
     const sep = document.createElement('div');
     sep.className = 'section-label';
     sep.textContent = '📋 事项';
     ul.appendChild(sep);
-    tasks.forEach(t => renderOne(t));
+    plainTasks.forEach(function(t, i) { renderOne(t, i); });
   }
   document.getElementById('evening-note').value = data.eveningNote || '';
 }
@@ -383,6 +407,8 @@ function renderEveningSummary(data) {
   const tasks = (data.morningTasks||[]).filter(t => (t.text||'').trim());
   const habits = tasks.filter(t => (t.kind||'task') === 'habit');
   const plainTasks = tasks.filter(t => (t.kind||'task') !== 'habit');
+  const knowledgeTasks = plainTasks.filter(t => t.itemType === 'knowledge');
+  const regularTasks = plainTasks.filter(t => t.itemType !== 'knowledge');
 
   const done = tasks.filter(t => t.status === 'done').length;
   const partial = tasks.filter(t => t.status === 'partial').length;
@@ -408,45 +434,33 @@ function renderEveningSummary(data) {
   const chipsEl = document.getElementById('summary-task-chips');
   chipsEl.innerHTML = '';
 
-  if (habits.length > 0) {
-    const hLabel = document.createElement('div');
-    hLabel.style.cssText = 'font-size:11px;color:var(--text-3);margin:8px 0 4px;';
-    hLabel.textContent = '🌀 习惯';
-    chipsEl.appendChild(hLabel);
-    const hRow = document.createElement('div');
-    hRow.className = 'chip-row';
-    habits.forEach(t => {
-      const chip = document.createElement('span');
+  function renderChipSection(label, taskList) {
+    if (taskList.length === 0) return;
+    var lbl = document.createElement('div');
+    lbl.style.cssText = 'font-size:11px;color:var(--text-3);margin:8px 0 4px;';
+    lbl.textContent = label;
+    chipsEl.appendChild(lbl);
+    var row = document.createElement('div');
+    row.className = 'chip-row';
+    taskList.forEach(function(t) {
+      var chip = document.createElement('span');
       chip.className = 'chip chip-' + (t.status || 'none');
       chip.textContent = (t.text||'').length > 16 ? t.text.slice(0,15)+'…' : t.text;
-      chip.title = t.text; hRow.appendChild(chip);
-    });
-    chipsEl.appendChild(hRow);
-  }
-
-  if (plainTasks.length > 0) {
-    const tLabel = document.createElement('div');
-    tLabel.style.cssText = 'font-size:11px;color:var(--text-3);margin:8px 0 4px;';
-    tLabel.textContent = '📋 事项';
-    chipsEl.appendChild(tLabel);
-    const tRow = document.createElement('div');
-    tRow.className = 'chip-row';
-    plainTasks.forEach(t => {
-      const chip = document.createElement('span');
-      chip.className = 'chip chip-' + (t.status || 'none');
-      chip.textContent = (t.text||'').length > 16 ? t.text.slice(0,15)+'…' : t.text;
-      chip.title = t.text; tRow.appendChild(chip);
-      // Show per-task evening note if exists
+      chip.title = t.text; row.appendChild(chip);
       if (t.eveningNote && t.eveningNote.trim()) {
-        const noteSpan = document.createElement('span');
-        noteSpan.style.cssText = 'font-size:10px;color:var(--text-3);margin-left:2px;';
-        noteSpan.textContent = '💬';
-        noteSpan.title = t.eveningNote;
-        tRow.appendChild(noteSpan);
+        var ns = document.createElement('span');
+        ns.style.cssText = 'font-size:10px;color:var(--text-3);margin-left:2px;';
+        ns.textContent = '💬';
+        ns.title = t.eveningNote;
+        row.appendChild(ns);
       }
     });
-    chipsEl.appendChild(tRow);
+    chipsEl.appendChild(row);
   }
+
+  renderChipSection('🌀 习惯', habits);
+  renderChipSection('📚 知识', knowledgeTasks);
+  renderChipSection('📋 事项', regularTasks);
 
   if (data.eveningNote) {
     const note = document.createElement('div');
