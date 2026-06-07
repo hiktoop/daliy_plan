@@ -676,7 +676,6 @@ body {
   min-width: 200px;
   max-width: 320px;
   z-index: 999;
-  pointer-events: none;
 }
 .cal-tooltip-date {
   font-size: 13px; font-weight: 500; color: var(--text);
