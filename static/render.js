@@ -158,6 +158,12 @@ async function renderMorningTasks(ul, data, savedMorning) {
   }
 
   addSection('📚 知识', knowledgeTasks);
+  // Divider between 知识 and 事项
+  if (knowledgeTasks.length > 0 && regularTasks.length > 0) {
+    var divider = document.createElement('div');
+    divider.className = 'section-divider';
+    ul.appendChild(divider);
+  }
   addSection('📋 事项', regularTasks);
 }
 
@@ -390,6 +396,11 @@ function renderEveningForm(data) {
     ul.appendChild(sep);
     knowledgeTasks.forEach(function(t, i) { renderOne(t, i); });
   }
+  if (knowledgeTasks.length > 0 && plainTasks.length > 0) {
+    var divider = document.createElement('div');
+    divider.className = 'section-divider';
+    ul.appendChild(divider);
+  }
   if (plainTasks.length > 0) {
     const sep = document.createElement('div');
     sep.className = 'section-label';
@@ -457,6 +468,12 @@ function renderEveningSummary(data) {
 
   renderChipSection('🌀 习惯', habits);
   renderChipSection('📚 知识', knowledgeTasks);
+  // Divider between 知识 and 事项 in summary
+  if (knowledgeTasks.length > 0 && regularTasks.length > 0) {
+    var sumDivider = document.createElement('div');
+    sumDivider.className = 'section-divider';
+    chipsEl.appendChild(sumDivider);
+  }
   renderChipSection('📋 事项', regularTasks);
 
   if (data.eveningNote) {

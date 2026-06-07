@@ -811,6 +811,14 @@ body {
   }
 }
 
+/* ─── Section Divider (between 知识 and 事项) ─── */
+
+.section-divider {
+  height: 0;
+  border-top: 0.5px solid var(--border);
+  margin: 10px 0;
+}
+
 /* ─── Knowledge Task URL Link ─── */
 
 .task-url-btn {
