@@ -246,44 +246,38 @@ function renderMorningItem(ul, task, index, data, streaks, savedMorning) {
     content.appendChild(scheduleRow);
   }
 
-  // Plan buttons
-  const planRow = document.createElement('div');
-  planRow.className = 'plan-group';
+  // Type toggle (知识/事项) — replaces old plan buttons
+  const typeRow = document.createElement('div');
+  typeRow.className = 'type-group';
   if (readOnly) {
-    const tag = document.createElement('span');
-    tag.className = 'plan-tag ' + (task.plan || '');
-    tag.textContent = task.plan ? (PLAN_META[task.plan].icon + ' ' + PLAN_META[task.plan].label) : '';
-    planRow.appendChild(tag);
-  } else {
-    ['long','week','month'].forEach(type => {
-      const btn = document.createElement('button');
-      btn.className = 'plan-btn';
-      if (task.plan === type) btn.classList.add('active-' + type);
-      btn.textContent = PLAN_META[type].label;
-      btn.title = PLAN_META[type].days ? `在接下来的 ${PLAN_META[type].days} 天内每天出现` : '每天都出现';
-      btn.onclick = () => setPlan(task.id, type);
-      planRow.appendChild(btn);
-    });
-  }
-
-  const streakSpan = document.createElement('span');
-  streakSpan.className = 'plan-streak';
-  if (task.plan && task.planId) {
-    const st = streaks[task.planId] || { current: 0, best: 0 };
-    if (st.current > 0) {
-      streakSpan.textContent = `连续 ${st.current} 天`;
-      streakSpan.classList.add('has-streak');
-      streakSpan.title = `最长连续 ${st.best} 天`;
-    } else if (st.best > 0) {
-      streakSpan.textContent = `连续 0 天`;
-      streakSpan.classList.add('is-zero');
-      streakSpan.title = `最长连续 ${st.best} 天`;
+    // Read-only: show type tag
+    if (task.itemType === 'knowledge') {
+      var kTag = document.createElement('span');
+      kTag.className = 'type-tag knowledge-tag';
+      kTag.textContent = '📚 知识';
+      typeRow.appendChild(kTag);
     } else {
-      streakSpan.textContent = '连续 0 天';
+      var tTag = document.createElement('span');
+      tTag.className = 'type-tag task-tag';
+      tTag.textContent = '事项';
+      typeRow.appendChild(tTag);
     }
+  } else {
+    // Edit mode: toggle buttons
+    var isKnowledge = task.itemType === 'knowledge';
+    var taskBtn = document.createElement('button');
+    taskBtn.className = 'type-btn' + (!isKnowledge ? ' active-task' : '');
+    taskBtn.textContent = '事项';
+    taskBtn.onclick = function() { toggleTaskType(task.id, 'task'); };
+    typeRow.appendChild(taskBtn);
+
+    var kBtn = document.createElement('button');
+    kBtn.className = 'type-btn' + (isKnowledge ? ' active-knowledge' : '');
+    kBtn.textContent = '📚 知识';
+    kBtn.onclick = function() { toggleTaskType(task.id, 'knowledge'); };
+    typeRow.appendChild(kBtn);
   }
-  planRow.appendChild(streakSpan);
-  content.appendChild(planRow);
+  content.appendChild(typeRow);
 
   const del = document.createElement('button');
   del.style.cssText = 'background:none;border:none;cursor:pointer;color:var(--text-3);font-size:13px;padding:0 4px;margin-top:3px;flex-shrink:0;';
@@ -321,16 +315,9 @@ function renderEveningForm(data) {
     const label = document.createElement('div');
     label.style.cssText = 'font-size:14px;color:var(--text);margin-bottom:4px;display:flex;align-items:center;gap:4px;flex-wrap:wrap;';
     label.textContent = task.text;
-    if (task.plan) {
-      const tag = document.createElement('span');
-      tag.className = 'plan-tag ' + task.plan;
-      tag.textContent = PLAN_META[task.plan].icon + ' ' + PLAN_META[task.plan].label;
-      label.appendChild(tag);
-    }
     if (task.itemType === 'knowledge') {
       const kbTag = document.createElement('span');
-      kbTag.className = 'plan-tag';
-      kbTag.style.cssText = 'background:#fff8e1;color:#f0a030;border-color:#f0d060;';
+      kbTag.className = 'type-tag knowledge-tag';
       kbTag.textContent = '📚 知识';
       label.appendChild(kbTag);
     }
@@ -837,6 +824,169 @@ async function renderCharts() {
       options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, tooltip: { callbacks: { label: ctx => '任务数: ' + ctx.parsed.y } } }, scales: { y: { beginAtZero: true, ticks: { stepSize: 1, color: '#9a9a94', font: { size: 11 } }, grid: { color: 'rgba(0,0,0,0.05)' } }, x: { ticks: { color: '#9a9a94', font: { size: 10 }, maxRotation: 45, autoSkip: true, maxTicksLimit: 12 }, grid: { display: false } } } }
     });
   }
+
+  // Ebbinghaus forgetting curve
+  renderEbbinghausCurve();
+}
+
+/* ─── Ebbinghaus Curve ─── */
+
+function renderEbbinghausCurve() {
+  destroyChart('chart-ebbinghaus');
+
+  // Generate data points: day 0–60 (review 6 is at day 29+30=59)
+  var maxDay = 62;
+  var labels = [];
+  var rawData = [];      // without review
+  var withReviewData = []; // with spaced reviews
+  var reviewMarkers = []; // scatter points at review moments
+  var reviewVlines = [];  // vertical lines at review days
+
+  // Review schedule: cumulative days
+  var intervals = [1, 2, 4, 7, 15, 30];
+  var reviewDays = [0]; // day 0 = learning
+  var cumDay = 0;
+  for (var i = 0; i < intervals.length; i++) {
+    cumDay += intervals[i];
+    reviewDays.push(cumDay);
+  }
+
+  // Stability values increase with each review
+  var stabilities = [1.2, 2.5, 6, 14, 40, 100, 250];
+
+  // Generate day-by-day data
+  var currentStability = stabilities[0];
+  var segmentStart = 0;
+  var ri = 0; // review index (0 = initial learning)
+
+  for (var d = 0; d <= maxDay; d++) {
+    labels.push(String(d));
+
+    // Raw forgetting (no review): fast decay
+    rawData.push(Math.max(0, Math.round(100 * Math.exp(-d / 2.2))));
+
+    // With review: sawtooth pattern
+    var daysSinceLastReview = d - segmentStart;
+    var retention = Math.round(100 * Math.exp(-daysSinceLastReview / currentStability));
+
+    // Check if this is a review day (boost to 100%)
+    if (ri < reviewDays.length && d === reviewDays[ri]) {
+      withReviewData.push(100);
+      reviewMarkers.push({ x: d, y: 100 });
+      reviewVlines.push({ x: d });
+      segmentStart = d;
+      currentStability = stabilities[Math.min(ri, stabilities.length - 1)];
+      ri++;
+    } else {
+      withReviewData.push(retention);
+    }
+  }
+
+  // Create Chart.js datasets
+  var datasets = [
+    {
+      label: '不复习',
+      data: rawData,
+      borderColor: '#a32d2d',
+      backgroundColor: 'transparent',
+      borderWidth: 1.5,
+      borderDash: [5, 3],
+      pointRadius: 0,
+      tension: 0.4
+    },
+    {
+      label: '按时复习（艾宾浩斯）',
+      data: withReviewData,
+      borderColor: '#3b6d11',
+      backgroundColor: 'rgba(59,109,17,0.06)',
+      fill: true,
+      borderWidth: 2.5,
+      pointRadius: 0,
+      tension: 0.35
+    },
+    {
+      label: '复习节点',
+      data: reviewMarkers,
+      type: 'scatter',
+      backgroundColor: '#f0a030',
+      borderColor: '#fff',
+      borderWidth: 1.5,
+      pointRadius: 6,
+      pointStyle: 'rectRounded',
+      showLine: false,
+      order: 1
+    }
+  ];
+
+  // Add vertical lines at review days using dashed line segments
+  // Chart.js doesn't support vertical lines natively, so add via plugin
+  charts['chart-ebbinghaus'] = new Chart(document.getElementById('chart-ebbinghaus'), {
+    type: 'line',
+    data: { labels: labels, datasets: datasets },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      interaction: { mode: 'index', intersect: false },
+      plugins: {
+        legend: {
+          display: true,
+          position: 'bottom',
+          labels: {
+            usePointStyle: true,
+            boxWidth: 8,
+            padding: 16,
+            font: { size: 11 },
+            color: '#5a5a56'
+          }
+        },
+        tooltip: {
+          callbacks: {
+            label: function(ctx) {
+              if (ctx.dataset.label === '复习节点') {
+                return '复习节点：第' + ctx.parsed.x + '天';
+              }
+              return ctx.dataset.label + '：' + ctx.parsed.y + '%';
+            }
+          }
+        }
+      },
+      scales: {
+        x: {
+          title: { display: true, text: '天数', color: '#9a9a94', font: { size: 11 } },
+          ticks: { color: '#9a9a94', font: { size: 10 }, maxTicksLimit: 15 },
+          grid: { display: false },
+          min: 0,
+          max: maxDay
+        },
+        y: {
+          title: { display: true, text: '记忆保持率', color: '#9a9a94', font: { size: 11 } },
+          min: 0, max: 105,
+          ticks: { callback: function(v) { return v + '%'; }, color: '#9a9a94', font: { size: 11 }, stepSize: 20 },
+          grid: { color: 'rgba(0,0,0,0.05)' }
+        }
+      }
+    },
+    plugins: [{
+      id: 'reviewVertLines',
+      afterDraw: function(chart) {
+        var ctx = chart.ctx;
+        var xAxis = chart.scales.x;
+        var yAxis = chart.scales.y;
+        ctx.save();
+        ctx.setLineDash([2, 4]);
+        ctx.strokeStyle = 'rgba(240,160,48,0.35)';
+        ctx.lineWidth = 1;
+        reviewVlines.forEach(function(vl) {
+          var x = xAxis.getPixelForValue(vl.x);
+          ctx.beginPath();
+          ctx.moveTo(x, yAxis.top);
+          ctx.lineTo(x, yAxis.bottom);
+          ctx.stroke();
+        });
+        ctx.restore();
+      }
+    }]
+  });
 }
 
 function destroyChart(id) {

@@ -235,6 +235,26 @@ body {
 .plan-tag.week  { background: #fce4d6; color: #a64e0a; border-color: #f0b080; }
 .plan-tag.month { background: #e0d4f5; color: #5c2d91; border-color: #b595d8; }
 
+/* ─── Type toggle (知识/事项) ─── */
+
+.type-group { display: flex; gap: 6px; margin-top: 4px; }
+.type-btn {
+  padding: 3px 10px; border-radius: 12px; border: 0.5px solid var(--border-md);
+  background: var(--surface); cursor: pointer; font-size: 11px;
+  color: var(--text-3); font-family: inherit; transition: all 0.12s;
+}
+.type-btn:hover { border-color: var(--text-2); color: var(--text-2); }
+.type-btn.active-task { background: var(--surface2); color: var(--text); border-color: var(--border-md); font-weight: 500; }
+.type-btn.active-knowledge { background: #fff8e1; color: #f0a030; border-color: #f0d060; font-weight: 500; }
+
+.type-tag {
+  display: inline-flex; align-items: center; gap: 3px;
+  font-size: 10px; padding: 1px 7px; border-radius: 8px; border: 0.5px solid;
+  vertical-align: middle; flex-shrink: 0;
+}
+.type-tag.knowledge-tag { background: #fff8e1; color: #f0a030; border-color: #f0d060; }
+.type-tag.task-tag { background: var(--surface2); color: var(--text-3); border-color: var(--border-md); }
+
 /* ─── Habit & Kind Buttons ─── */
 
 .add-kind-btn {

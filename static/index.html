@@ -4,14 +4,14 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>每日任务追踪</title>
-<link rel="stylesheet" href="/static/style.css?v=18">
+<link rel="stylesheet" href="/static/style.css?v=19">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
 <!-- JS modules: loaded in dependency order -->
-<script src="/static/app.js?v=18"></script>
-<script src="/static/api.js?v=18"></script>
-<script src="/static/render.js?v=18"></script>
-  <script src="/static/actions.js?v=18"></script>
-  <script src="/static/quotes.js?v=18"></script>
+<script src="/static/app.js?v=19"></script>
+<script src="/static/api.js?v=19"></script>
+<script src="/static/render.js?v=19"></script>
+  <script src="/static/actions.js?v=19"></script>
+  <script src="/static/quotes.js?v=19"></script>
 </head>
 <body>
 
@@ -67,8 +67,7 @@
     </div>
     <ul class="task-list" id="morning-task-list"></ul>
     <div class="add-task-row" id="add-task-area" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
-      <span class="add-kind-btn" onclick="addTask('knowledge')" title="知识：完成后按艾宾浩斯曲线复习"><span class="add-icon">+</span> 知识</span>
-      <span class="add-kind-btn active" onclick="addTask('task')" title="短期任务：仅今日有效"><span class="add-icon">+</span> 事项</span>
+      <span class="add-kind-btn active" onclick="addTask('task')" title="添加一个新事项"><span class="add-icon">+</span> 事项</span>
     </div>
     <div id="morning-note-wrap" style="margin-top:14px;">
       <div style="font-size:12px;color:var(--text-3);margin-bottom:6px;">今日备注（可选）</div>
@@ -372,6 +371,17 @@
   <div class="card" style="margin-top:0;">
     <div class="card-title">综合统计</div>
     <div class="progress-row" id="global-metrics"></div>
+  </div>
+  <div class="card" style="margin-top:16px;">
+    <div class="card-title">艾宾浩斯遗忘曲线</div>
+    <div class="chart-wrap" style="height:260px;">
+      <canvas id="chart-ebbinghaus" role="img" aria-label="艾宾浩斯遗忘曲线与复习节点"></canvas>
+    </div>
+    <div style="font-size:11px;color:var(--text-3);margin-top:8px;text-align:center;">
+      <span style="color:#a32d2d;">红色虚线</span> = 不复习的遗忘曲线 · 
+      <span style="color:#3b6d11;">绿色实线</span> = 按时复习的记忆保持 · 
+      竖线 = 复习节点（1/2/4/7/15/30 天）
+    </div>
   </div>
 </div>
 </div>

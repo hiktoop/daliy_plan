@@ -10,7 +10,7 @@ function syncInputsToDay(d) {
   inputs.forEach((input, i) => { if (d.morningTasks && d.morningTasks[i]) d.morningTasks[i].text = input.value; });
 }
 
-/* ─── Plan assignment ─── */
+/* ─── Plan assignment (keep for backward compat) ─── */
 
 async function setPlan(taskId, planType) {
   let d = await API.getDay(currentDate);
@@ -36,25 +36,35 @@ async function setPlan(taskId, planType) {
   await renderToday();
 }
 
+/* ─── Type toggle (知识/事项) ─── */
+
+async function toggleTaskType(taskId, newType) {
+  var d = await API.getDay(currentDate);
+  if (d.savedMorning) { showToast('早间计划已保存，不可修改'); return; }
+  syncInputsToDay(d);
+  var t = (d.morningTasks||[]).find(function(x) { return x.id === taskId; });
+  if (!t) return;
+  if (newType === 'knowledge') {
+    t.itemType = 'knowledge';
+    showToast('已设为知识事项，完成后将按艾宾浩斯曲线复习');
+  } else {
+    delete t.itemType;
+    showToast('已设为普通事项');
+  }
+  await API.saveDay(currentDate, d);
+  await renderToday();
+}
+
 /* ─── Add / Delete tasks ─── */
 
 async function addTask(kind) {
-  // kind: 'task' | 'habit' | 'knowledge', default 'task'
+  // kind: 'task' only (legacy param kept for backward compat)
   kind = kind || 'task';
   let d = await API.getDay(currentDate);
   if (d.savedMorning) { showToast('早间计划已保存，不可添加事项'); return; }
   if ((d.morningTasks||[]).length >= 10) return;
   syncInputsToDay(d);
   var newTask = { id: uid(), text: '', kind: 'task', status: null, eveningNote: '', plan: null };
-  if (kind === 'knowledge') {
-    newTask.itemType = 'knowledge';
-    if (!document.querySelector('.add-kind-btn.knowledge-on')) {
-      document.querySelectorAll('.add-kind-btn').forEach(function(b) { b.classList.remove('active'); });
-      document.querySelector('.add-kind-btn[onclick*="knowledge"]').classList.add('active');
-    }
-  } else if (kind === 'habit') {
-    newTask.kind = 'habit';
-  }
   d.morningTasks.push(newTask);
   await API.saveDay(currentDate, d);
   await renderToday();
