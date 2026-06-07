@@ -299,12 +299,60 @@ async function createHabit() {
 
 async function toggleCheckIn(habitId, currentlyChecked) {
   if (currentlyChecked) {
+    // Uncheck: no note needed
     await API.uncheck(habitId);
     showToast('已取消打卡');
+    await renderHabits();
   } else {
-    await API.checkIn(habitId);
-    showToast('打卡成功 ✓');
+    // Check in: show note dialog
+    showCheckInDialog(habitId);
   }
+}
+
+function showCheckInDialog(habitId) {
+  // Remove any existing dialog
+  var existing = document.getElementById('checkin-dialog-overlay');
+  if (existing) existing.remove();
+
+  var overlay = document.createElement('div');
+  overlay.id = 'checkin-dialog-overlay';
+  overlay.className = 'checkin-overlay';
+  overlay.onclick = function(e) {
+    if (e.target === overlay) closeCheckInDialog();
+  };
+
+  var dialog = document.createElement('div');
+  dialog.className = 'checkin-dialog card';
+  dialog.onclick = function(e) { e.stopPropagation(); };
+
+  dialog.innerHTML =
+    '<div class="checkin-dialog-title">📝 打卡备注</div>' +
+    '<textarea class="checkin-dialog-note" id="checkin-note" placeholder="今天有什么想记录的？（可选）" rows="3"></textarea>' +
+    '<div style="display:flex;gap:8px;justify-content:flex-end;margin-top:12px;">' +
+      '<button class="pomo-btn pomo-reset" onclick="closeCheckInDialog()" style="font-size:12px;">跳过</button>' +
+      '<button class="pomo-btn pomo-start" onclick="confirmCheckIn(\'' + habitId + '\')" style="font-size:12px;">打卡 ✓</button>' +
+    '</div>';
+
+  overlay.appendChild(dialog);
+  document.body.appendChild(overlay);
+
+  // Focus the textarea
+  setTimeout(function() {
+    var ta = document.getElementById('checkin-note');
+    if (ta) ta.focus();
+  }, 100);
+}
+
+function closeCheckInDialog() {
+  var overlay = document.getElementById('checkin-dialog-overlay');
+  if (overlay) overlay.remove();
+}
+
+async function confirmCheckIn(habitId) {
+  var note = document.getElementById('checkin-note').value.trim();
+  closeCheckInDialog();
+  await API.checkIn(habitId, note);
+  showToast(note ? '打卡成功 ✓（已保存备注）' : '打卡成功 ✓');
   await renderHabits();
 }
 

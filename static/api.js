@@ -90,8 +90,12 @@ const API = {
     const res = await this._fetch('/api/habits/' + id, { method: 'DELETE' });
     return res;
   },
-  async checkIn(habitId) {
-    return this._fetch('/api/habits/' + habitId + '/check', { method: 'POST' });
+  async checkIn(habitId, note) {
+    return this._fetch('/api/habits/' + habitId + '/check', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ note: note || '' })
+    });
   },
   async uncheck(habitId) {
     return this._fetch('/api/habits/' + habitId + '/check', { method: 'DELETE' });

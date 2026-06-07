@@ -1004,7 +1004,38 @@ async function renderHabits() {
 
   const grid = document.getElementById('habits-grid');
   const empty = document.getElementById('habits-empty');
+  const statsPanel = document.getElementById('habits-stats');
 
+  // ── Overview stats ──
+  if (habits.length > 0) {
+    var checkedCount = habits.filter(function(h) { return h.checked_today; }).length;
+    var rate = Math.round(checkedCount / habits.length * 100);
+    var totalStreak = habits.reduce(function(s, h) { return s + h.streak; }, 0);
+    statsPanel.style.display = '';
+    statsPanel.innerHTML =
+      '<div class="stats-grid">' +
+        '<div class="stat-item">' +
+          '<div class="stat-value" style="color:' + (rate === 100 ? 'var(--accent-text)' : rate >= 50 ? 'var(--warn)' : 'var(--text)') + ';">' + rate + '%</div>' +
+          '<div class="stat-label">今日完成率</div>' +
+        '</div>' +
+        '<div class="stat-item">' +
+          '<div class="stat-value">' + checkedCount + '/' + habits.length + '</div>' +
+          '<div class="stat-label">已打卡</div>' +
+        '</div>' +
+        '<div class="stat-item">' +
+          '<div class="stat-value">' + totalStreak + '</div>' +
+          '<div class="stat-label">总连续天数</div>' +
+        '</div>' +
+        '<div class="stat-item">' +
+          '<div class="stat-value">' + habits.length + '</div>' +
+          '<div class="stat-label">总习惯数</div>' +
+        '</div>' +
+      '</div>';
+  } else {
+    statsPanel.style.display = 'none';
+  }
+
+  // ── Habit cards ──
   if (habits.length === 0) {
     grid.innerHTML = '';
     empty.style.display = '';
@@ -1012,16 +1043,21 @@ async function renderHabits() {
     empty.style.display = 'none';
     grid.innerHTML = habits.map(h => {
       const checked = h.checked_today;
+      var noteHtml = '';
+      if (checked && h.note_today && h.note_today.trim()) {
+        noteHtml = '<div class="habit-note">💬 ' + escapeHTML(h.note_today) + '</div>';
+      }
       return '<div class="habit-card" style="border-left: 3px solid ' + h.color + '">' +
         '<div style="display:flex;align-items:center;justify-content:space-between;">' +
-        '<div style="display:flex;align-items:center;gap:8px;">' +
+        '<div style="display:flex;align-items:center;gap:8px;flex:1;min-width:0;">' +
         '<span style="font-size:24px;">' + h.icon + '</span>' +
-        '<div>' +
+        '<div style="flex:1;min-width:0;">' +
         '<div style="font-weight:500;font-size:14px;">' + h.name + '</div>' +
         '<div style="font-size:11px;color:var(--text-3);">' + (h.frequency === 'daily' ? '每天' : '每周') + ' · 连续 ' + h.streak + ' 天 · 最佳 ' + h.best + ' 天</div>' +
+        noteHtml +
         '</div></div>' +
         '<button class="habit-check-btn' + (checked ? ' checked' : '') + '" ' +
-        'style="background:' + (checked ? h.color : 'var(--surface2)') + ';color:' + (checked ? '#fff' : 'var(--text-2)') + ';" ' +
+        'style="background:' + (checked ? h.color : 'var(--surface2)') + ';color:' + (checked ? '#fff' : 'var(--text-2)') + ';flex-shrink:0;" ' +
         'onclick="toggleCheckIn(\'' + h.id + '\', ' + checked + ')">' +
         (checked ? '✓ 已打卡' : '打卡') + '</button>' +
         '</div>' +

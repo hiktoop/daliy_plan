@@ -6,7 +6,7 @@ from datetime import date as dt_date, timedelta
 
 from fastapi import APIRouter, Query
 from backend.db import get_db
-from backend.models import HabitCreate, HabitItem
+from backend.models import HabitCreate, HabitItem, CheckInRequest
 
 router = APIRouter(prefix="/api/habits", tags=["habits"])
 
@@ -77,13 +77,15 @@ def list_habits():
         h = dict(r)
         with get_db() as db:
             cur, best = _calc_streak(db, h["id"], today)
-            checked = db.execute(
-                "SELECT 1 FROM habit_logs WHERE habit_id = ? AND date = ?",
+            log_row = db.execute(
+                "SELECT done_value, note FROM habit_logs WHERE habit_id = ? AND date = ?",
                 (h["id"], today)
-            ).fetchone() is not None
+            ).fetchone()
+            checked = log_row is not None
         h["streak"] = cur
         h["best"] = best
         h["checked_today"] = checked
+        h["note_today"] = log_row["note"] if log_row and log_row["note"] else ""
         result.append(h)
     return {"habits": result}
 
@@ -124,7 +126,7 @@ def archive_habit(habit_id: str):
 # ── Check-in ──
 
 @router.post("/{habit_id}/check")
-def check_in(habit_id: str):
+def check_in(habit_id: str, payload: CheckInRequest = CheckInRequest()):
     today = _today()
     with get_db() as db:
         existing = db.execute(
@@ -132,11 +134,17 @@ def check_in(habit_id: str):
             (habit_id, today)
         ).fetchone()
         if existing:
+            # Update note if already checked
+            if payload.note:
+                db.execute(
+                    "UPDATE habit_logs SET note=? WHERE id=?",
+                    (payload.note, existing["id"])
+                )
             return {"ok": True, "already_checked": True}
 
         db.execute(
-            "INSERT INTO habit_logs (id, habit_id, date, created_at) VALUES (?,?,?,?)",
-            (_uid(), habit_id, today, time.time())
+            "INSERT INTO habit_logs (id, habit_id, date, note, created_at) VALUES (?,?,?,?,?)",
+            (_uid(), habit_id, today, payload.note, time.time())
         )
     return {"ok": True}
 

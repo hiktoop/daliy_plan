@@ -102,6 +102,7 @@ class HabitItem(BaseModel):
     streak: int = 0
     best: int = 0
     checked_today: bool = False
+    note_today: str = ""        # 今日打卡备注
 
 
 class HabitLogItem(BaseModel):
@@ -110,3 +111,7 @@ class HabitLogItem(BaseModel):
     date: str
     done_value: int = 1
     note: str = ""
+
+
+class CheckInRequest(BaseModel):
+    note: str = ""              # 打卡时可选备注
