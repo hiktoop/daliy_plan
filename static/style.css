@@ -455,3 +455,82 @@ body {
     width: 100%;
   }
 }
+
+/* ─── Habits ─── */
+
+.habits-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 12px;
+}
+
+.habit-card {
+  background: var(--surface);
+  border: 0.5px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px 16px;
+  box-shadow: var(--shadow);
+  position: relative;
+  transition: box-shadow 0.15s;
+}
+
+.habit-card:hover {
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.habit-check-btn {
+  padding: 6px 14px;
+  border-radius: 18px;
+  border: none;
+  font-size: 12px;
+  font-weight: 500;
+  font-family: inherit;
+  cursor: pointer;
+  transition: transform 0.1s, opacity 0.15s;
+  white-space: nowrap;
+}
+
+.habit-check-btn:hover { opacity: 0.88; }
+.habit-check-btn:active { transform: scale(0.96); }
+
+.habit-check-btn.checked {
+  border: none;
+  font-weight: 500;
+}
+
+.habit-del-btn {
+  position: absolute;
+  top: 6px;
+  right: 10px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--text-3);
+  font-size: 14px;
+  padding: 2px 4px;
+  line-height: 1;
+  opacity: 0;
+  transition: opacity 0.15s, color 0.12s;
+}
+
+.habit-card:hover .habit-del-btn { opacity: 1; }
+.habit-del-btn:hover { color: var(--danger); }
+
+.heatmap-wrap {
+  padding: 8px 0;
+  user-select: none;
+}
+
+/* Heatmap cells hover tooltip */
+.heatmap-wrap div[title] {
+  transition: opacity 0.1s;
+}
+.heatmap-wrap div[title]:hover {
+  opacity: 0.8;
+}
+
+@media (max-width: 600px) {
+  .habits-grid {
+    grid-template-columns: 1fr;
+  }
+}

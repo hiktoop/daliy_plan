@@ -69,6 +69,28 @@ def init_db():
                 duration    INTEGER DEFAULT 0,
                 note        TEXT DEFAULT ''
             );
+
+            CREATE TABLE IF NOT EXISTS habits (
+                id          TEXT PRIMARY KEY,
+                name        TEXT NOT NULL,
+                frequency   TEXT DEFAULT 'daily',
+                target_value INTEGER DEFAULT 1,
+                icon        TEXT DEFAULT '🏃',
+                color       TEXT DEFAULT '#BA7517',
+                status      TEXT DEFAULT 'active',
+                created_at  REAL
+            );
+
+            CREATE TABLE IF NOT EXISTS habit_logs (
+                id          TEXT PRIMARY KEY,
+                habit_id    TEXT NOT NULL,
+                date        TEXT NOT NULL,
+                done_value  INTEGER DEFAULT 1,
+                note        TEXT DEFAULT '',
+                created_at  REAL,
+                FOREIGN KEY (habit_id) REFERENCES habits(id) ON DELETE CASCADE,
+                UNIQUE(habit_id, date)
+            );
         """)
         # Migration: add status column if missing
         try:

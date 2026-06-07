@@ -73,5 +73,30 @@ const API = {
   async updateStreak(planId, dateStr, status) {
     await this._fetch('/api/streaks/' + planId + '?date_str=' + encodeURIComponent(dateStr) + '&status=' + encodeURIComponent(status), { method: 'POST' });
     _plansCache = null;
+  },
+
+  // ── Habits ──
+  async getHabits() {
+    return this._fetch('/api/habits');
+  },
+  async createHabit(data) {
+    const res = await this._fetch('/api/habits', {
+      method: 'POST', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify(data)
+    });
+    return res;
+  },
+  async deleteHabit(id) {
+    const res = await this._fetch('/api/habits/' + id, { method: 'DELETE' });
+    return res;
+  },
+  async checkIn(habitId) {
+    return this._fetch('/api/habits/' + habitId + '/check', { method: 'POST' });
+  },
+  async uncheck(habitId) {
+    return this._fetch('/api/habits/' + habitId + '/check', { method: 'DELETE' });
+  },
+  async getHeatmap(days) {
+    return this._fetch('/api/habits/heatmap?days=' + (days||84));
   }
 };

@@ -58,3 +58,34 @@ class FocusSession(BaseModel):
     end_ts: float | None = None
     duration: int = 0
     note: str = ""
+
+
+# ── Habits ──
+
+class HabitCreate(BaseModel):
+    name: str
+    frequency: str = "daily"
+    target_value: int = 1
+    icon: str = "🏃"
+    color: str = "#BA7517"
+
+
+class HabitItem(BaseModel):
+    id: str
+    name: str
+    frequency: str = "daily"
+    target_value: int = 1
+    icon: str = "🏃"
+    color: str = "#BA7517"
+    status: str = "active"
+    streak: int = 0
+    best: int = 0
+    checked_today: bool = False
+
+
+class HabitLogItem(BaseModel):
+    id: str
+    habit_id: str
+    date: str
+    done_value: int = 1
+    note: str = ""

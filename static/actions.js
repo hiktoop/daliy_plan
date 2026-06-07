@@ -254,3 +254,53 @@ async function pomoReset() {
   pomoUpdateDisplay();
   document.getElementById('pomo-active-task').style.display = 'none';
 }
+
+/* ─── Habits Actions ─── */
+
+function showAddHabit() {
+  document.getElementById('habit-add-card').style.display = '';
+  document.getElementById('habit-add-name').focus();
+}
+
+function cancelAddHabit() {
+  document.getElementById('habit-add-card').style.display = 'none';
+  document.getElementById('habit-add-name').value = '';
+}
+
+async function createHabit() {
+  var name = document.getElementById('habit-add-name').value.trim();
+  if (!name) { showToast('请输入习惯名称'); return; }
+  var freq = document.getElementById('habit-add-freq').value;
+  var icon = document.getElementById('habit-add-icon').value;
+
+  var colors = ['#BA7517','#378ADD','#639922','#D4537E','#534AB7','#1D9E75','#D85A30','#993556'];
+  var color = colors[Math.floor(Math.random() * colors.length)];
+
+  try {
+    await API.createHabit({ name: name, frequency: freq, icon: icon, color: color });
+    showToast('习惯已创建 ✓');
+    document.getElementById('habit-add-name').value = '';
+    document.getElementById('habit-add-card').style.display = 'none';
+    await renderHabits();
+  } catch(e) {
+    showToast('创建失败，请重试');
+  }
+}
+
+async function toggleCheckIn(habitId, currentlyChecked) {
+  if (currentlyChecked) {
+    await API.uncheck(habitId);
+    showToast('已取消打卡');
+  } else {
+    await API.checkIn(habitId);
+    showToast('打卡成功 ✓');
+  }
+  await renderHabits();
+}
+
+async function archiveHabit(habitId) {
+  if (!confirm('确定归档这个习惯吗？归档后不再显示在主列表。')) return;
+  await API.deleteHabit(habitId);
+  showToast('习惯已归档');
+  await renderHabits();
+}
