@@ -28,25 +28,6 @@ FastAPI + SQLite + 纯前端模块化架构的每日任务管理平台。
 const QUOTES_RAW_URL = 'https://raw.githubusercontent.com/hiktoop/quotes/main/quotes.md';
 ```
 
-### 自建 quotes 仓库步骤
-
-1. 在 GitHub 创建公开仓库（如 `hiktoop/quotes`）
-2. 在根目录创建 `quotes.md`，按以下格式填写：
-
-```
-## 句子
-
-1. 做困难的事，是进步最快的方式。
-2. 你不需要更有动力，你需要的是更好的系统。—— James Clear《原子习惯》
-
-## 方法论
-
-1. 番茄工作法：25分钟专注 + 5分钟休息，循环4次后长休息15-30分钟。
-2. 艾森豪威尔矩阵：把任务按「重要/紧急」分成四象限，优先做「重要不紧急」的事。
-```
-
-3. 推送后访问 `https://raw.githubusercontent.com/<用户名>/quotes/main/quotes.md` 确认可公开访问
-
 ## 技术栈
 
 - **后端**：Python 3.13 + FastAPI + SQLite
