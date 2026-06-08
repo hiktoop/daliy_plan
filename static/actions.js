@@ -177,6 +177,11 @@ async function pomoStart() {
   pomoState.taskId = document.getElementById('pomo-task-select').value || null;
   pomoState.taskText = document.getElementById('pomo-task-select').selectedOptions[0]?.textContent || '';
 
+  // 请求通知权限（倒计时模式，用户主动点击时触发）
+  if (pomoState.mode === 'countdown' && 'Notification' in window && Notification.permission === 'default') {
+    Notification.requestPermission();
+  }
+
   // Create session on backend
   const res = await fetch('/api/focus/start', {
     method: 'POST',
@@ -207,10 +212,15 @@ async function pomoStart() {
         pomoUpdateDisplay();
         clearInterval(pomoState.timerInterval);
         pomoState.running = false;
+
+        // 保存记录到后端（修复：之前 sessionId 被提前清空导致记录时长为 0）
+        pomoAutoSave();
+
         pomoState.sessionId = null;
         pomoState.startTs = null;
         pomoSetButtons(false, false);
         showToast('⏱ 倒计时结束！专注完成 ✓');
+        pomoNotify();
         pomoRefreshStats();
         return;
       }
@@ -278,6 +288,50 @@ async function pomoReset() {
   pomoSetButtons(false, false);
   pomoUpdateDisplay();
   document.getElementById('pomo-active-task').style.display = 'none';
+}
+
+/** 倒计时自动结束时保存记录 */
+async function pomoAutoSave() {
+  if (!pomoState.sessionId) return;
+  try {
+    await fetch('/api/focus/' + pomoState.sessionId + '/stop', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({note: ''})
+    });
+  } catch (e) {
+    console.error('自动保存专注记录失败:', e);
+  }
+}
+
+/** 浏览器通知 + 声音提醒 */
+function pomoNotify() {
+  // 声音提醒（Web Audio API - 短促提示音）
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.type = 'sine';
+    gain.gain.value = 0.3;
+    // 三连音：C5 E5 G5
+    osc.frequency.setValueAtTime(523, ctx.currentTime);
+    osc.frequency.setValueAtTime(659, ctx.currentTime + 0.15);
+    osc.frequency.setValueAtTime(784, ctx.currentTime + 0.3);
+    gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.5);
+    osc.start(ctx.currentTime);
+    osc.stop(ctx.currentTime + 0.5);
+  } catch (e) {}
+
+  // 桌面通知
+  if ('Notification' in window && Notification.permission === 'granted') {
+    new Notification('⏱ 专注完成', {
+      body: '倒计时结束，你已专注 ' + (pomoState.targetSec / 60) + ' 分钟！',
+      icon: '/static/favicon.ico',
+      silent: true
+    });
+  }
 }
 
 /* ─── Habits Actions ─── */
