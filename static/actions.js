@@ -202,7 +202,7 @@ async function pomoStart() {
   const isCountdown = pomoState.mode === 'countdown';
   const targetMs = isCountdown ? pomoState.targetSec * 1000 : null;
 
-  pomoState.timerInterval = setInterval(() => {
+  pomoState.timerInterval = setInterval(async () => {
     if (!pomoState.paused) {
       pomoState.elapsed = Math.floor((Date.now()/1000) - pomoState.startTs);
 
