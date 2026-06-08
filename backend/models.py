@@ -70,6 +70,7 @@ class FocusStartPayload(BaseModel):
 
 class FocusStopPayload(BaseModel):
     note: str = ""
+    duration: int | None = None  # 显式传入时长（秒），倒计时用
 
 
 class FocusSession(BaseModel):

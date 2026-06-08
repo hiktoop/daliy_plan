@@ -214,7 +214,7 @@ async function pomoStart() {
         pomoState.running = false;
 
         // 保存记录到后端（修复：之前 sessionId 被提前清空导致记录时长为 0）
-        pomoAutoSave();
+        await pomoAutoSave();
 
         pomoState.sessionId = null;
         pomoState.startTs = null;
@@ -297,7 +297,7 @@ async function pomoAutoSave() {
     await fetch('/api/focus/' + pomoState.sessionId + '/stop', {
       method: 'POST',
       headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({note: ''})
+      body: JSON.stringify({note: '', duration: pomoState.targetSec})
     });
   } catch (e) {
     console.error('自动保存专注记录失败:', e);

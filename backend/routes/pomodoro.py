@@ -35,7 +35,7 @@ def stop_focus(session_id: str, payload: FocusStopPayload = FocusStopPayload()):
             return {"error": "session not found"}
         if row["end_ts"] is not None:
             return {"error": "session already stopped"}
-        duration = int(now - row["start_ts"])
+        duration = payload.duration if payload.duration else int(now - row["start_ts"])
         db.execute(
             "UPDATE focus_sessions SET end_ts = ?, duration = ?, note = ? WHERE id = ?",
             (now, duration, payload.note, session_id)
