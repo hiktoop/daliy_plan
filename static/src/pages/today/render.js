@@ -228,20 +228,12 @@ function renderMorningCard(container, task, index, data, savedMorning) {
     controls.appendChild(del);
   }
 
-  topRow.appendChild(controls);
-  card.appendChild(topRow);
-
-  // ═══ Bottom row: star + url + knowledge info ═══
-  const bottomRow = document.createElement('div');
-  bottomRow.className = 'task-card-bottom';
-  let hasBottom = false;
-
-  // Priority star
+  // Priority star (both 事项 and 知识)
   const star = document.createElement('button');
   star.className = 'priority-star' + (task.starred ? ' active' : '');
   star.innerHTML = task.starred ? '⭐' : '☆';
   star.title = task.starred ? '已标记为重要' : '标记为重要';
-  star.style.cssText = 'width:22px;height:22px;min-width:22px;min-height:22px;font-size:14px;';
+  star.style.cssText = 'min-width:22px;min-height:22px;width:22px;height:22px;font-size:12px;flex-shrink:0;';
   if (readOnly) star.classList.add('readonly');
   star.onclick = async function(e) {
     e.stopPropagation();
@@ -253,10 +245,8 @@ function renderMorningCard(container, task, index, data, savedMorning) {
     await API.saveDay(currentDate, d);
     await renderToday();
   };
-  bottomRow.appendChild(star);
-  hasBottom = true;
 
-  // URL link for knowledge tasks
+  // URL link — for knowledge tasks, next to star in controls row
   if (isKnowledge) {
     const hasUrl = task.sourceUrl && task.sourceUrl.trim();
     if (hasUrl) {
@@ -264,27 +254,32 @@ function renderMorningCard(container, task, index, data, savedMorning) {
       linkBtn.href = task.sourceUrl;
       linkBtn.target = '_blank';
       linkBtn.rel = 'noopener';
-      linkBtn.style.cssText = 'display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:5px;border:0.5px solid #6ee7b7;background:#ecfdf5;text-decoration:none;font-size:12px;opacity:0.9;flex-shrink:0;';
+      linkBtn.style.cssText = 'min-width:22px;min-height:22px;width:22px;height:22px;border-radius:5px;border:0.5px solid #6ee7b7;background:#ecfdf5;text-decoration:none;font-size:12px;display:flex;align-items:center;justify-content:center;opacity:0.9;flex-shrink:0;';
       linkBtn.title = '打开学习资料';
       linkBtn.innerHTML = '🔗';
       linkBtn.onclick = function(e) { e.stopPropagation(); };
-      bottomRow.appendChild(linkBtn);
+      controls.appendChild(star);
+      controls.appendChild(linkBtn);
     } else if (!readOnly) {
       const addUrlBtn = document.createElement('button');
-      addUrlBtn.style.cssText = 'display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:5px;border:0.5px solid var(--border);background:transparent;cursor:pointer;font-size:13px;opacity:0.4;padding:0;flex-shrink:0;';
+      addUrlBtn.style.cssText = 'min-width:22px;min-height:22px;width:22px;height:22px;border-radius:5px;border:0.5px solid var(--border);background:transparent;cursor:pointer;font-size:12px;opacity:0.4;padding:0;flex-shrink:0;display:flex;align-items:center;justify-content:center;';
       addUrlBtn.title = '贴上学习资料链接';
       addUrlBtn.innerHTML = '🔗';
       addUrlBtn.onclick = function(e) {
         e.stopPropagation();
-        showUrlInline(bottomRow, task.id);
+        showUrlInline(controls, task.id);
       };
-      bottomRow.appendChild(addUrlBtn);
+      controls.appendChild(star);
+      controls.appendChild(addUrlBtn);
+    } else {
+      controls.appendChild(star);
     }
-
-    hasBottom = true;
+  } else {
+    controls.appendChild(star);
   }
 
-  if (hasBottom) card.appendChild(bottomRow);
+  topRow.appendChild(controls);
+  card.appendChild(topRow);
 
   container.appendChild(card);
 
