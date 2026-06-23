@@ -244,6 +244,42 @@ def list_notes(
     }
 
 
+@router.get("/notes/search")
+def search_notes(q: str = Query(..., min_length=1)):
+    """Full-text search across diary and notes."""
+    like = f"%{q}%"
+    with get_db() as db:
+        diary_rows = db.execute(
+            "SELECT date, content, updated_at FROM diary "
+            "WHERE content LIKE ? ORDER BY date DESC",
+            (like,),
+        ).fetchall()
+        note_rows = db.execute(
+            "SELECT * FROM notes WHERE title LIKE ? OR content LIKE ? ORDER BY updated_at DESC",
+            (like, like),
+        ).fetchall()
+    return {
+        "diary": [
+            {
+                "date": r["date"],
+                "content": r["content"][:200],
+                "updated_at": r["updated_at"],
+            }
+            for r in diary_rows
+        ],
+        "notes": [
+            {
+                "id": r["id"],
+                "title": r["title"],
+                "content": r["content"][:200],
+                "tags": json.loads(r["tags"]) if r["tags"] else [],
+                "updated_at": r["updated_at"],
+            }
+            for r in note_rows
+        ],
+    }
+
+
 @router.get("/notes/{note_id}")
 def get_note(note_id: str):
     """Get a single note by id."""
@@ -294,42 +330,6 @@ def delete_note(note_id: str):
     with get_db() as db:
         db.execute("DELETE FROM notes WHERE id=?", (note_id,))
     return {"ok": True}
-
-
-@router.get("/notes/search")
-def search_notes(q: str = Query(..., min_length=1)):
-    """Full-text search across diary and notes."""
-    like = f"%{q}%"
-    with get_db() as db:
-        diary_rows = db.execute(
-            "SELECT date, content, updated_at FROM diary "
-            "WHERE content LIKE ? ORDER BY date DESC",
-            (like,),
-        ).fetchall()
-        note_rows = db.execute(
-            "SELECT * FROM notes WHERE title LIKE ? OR content LIKE ? ORDER BY updated_at DESC",
-            (like, like),
-        ).fetchall()
-    return {
-        "diary": [
-            {
-                "date": r["date"],
-                "content": r["content"][:200],
-                "updated_at": r["updated_at"],
-            }
-            for r in diary_rows
-        ],
-        "notes": [
-            {
-                "id": r["id"],
-                "title": r["title"],
-                "content": r["content"][:200],
-                "tags": json.loads(r["tags"]) if r["tags"] else [],
-                "updated_at": r["updated_at"],
-            }
-            for r in note_rows
-        ],
-    }
 
 
 # ── Helpers ───────────────────────────────────────────────

@@ -6,16 +6,33 @@ from pathlib import Path
 from contextlib import contextmanager
 
 BASE_DIR = Path(__file__).resolve().parent.parent
-DATA_DIR = BASE_DIR / "data"
-DB_PATH = DATA_DIR / "daily_tasks.db"
+DEFAULT_DATA_DIR = BASE_DIR / "data"
+DEFAULT_DB_PATH = DEFAULT_DATA_DIR / "daily_tasks.db"
+
+_db_path = str(DEFAULT_DB_PATH)
+
+
+def set_db_path(path: str):
+    """Override the database path. Call before get_db() or init_db()."""
+    global _db_path
+    _db_path = path
+
+
+def get_db_path() -> str:
+    return _db_path
 
 
 @contextmanager
 def get_db():
-    os.makedirs(DATA_DIR, exist_ok=True)
-    conn = sqlite3.connect(str(DB_PATH))
+    db_path = _db_path
+    is_uri = db_path.startswith("file:")
+    if not is_uri:
+        if db_path != ":memory:":
+            os.makedirs(os.path.dirname(db_path), exist_ok=True)
+    conn = sqlite3.connect(db_path, uri=is_uri)
     conn.row_factory = sqlite3.Row
-    conn.execute("PRAGMA journal_mode=WAL")
+    if not is_uri:
+        conn.execute("PRAGMA journal_mode=WAL")
     conn.execute("PRAGMA foreign_keys=ON")
     try:
         yield conn
