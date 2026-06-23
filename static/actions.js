@@ -182,6 +182,14 @@ async function pomoStart() {
     Notification.requestPermission();
   }
 
+  // 预创建 AudioContext（用户点击上下文，不会被浏览器暂停）
+  if (!pomoState.audioCtx) {
+    pomoState.audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  }
+  if (pomoState.audioCtx.state === 'suspended') {
+    pomoState.audioCtx.resume();
+  }
+
   // Create session on backend
   const res = await fetch('/api/focus/start', {
     method: 'POST',
@@ -306,11 +314,16 @@ async function pomoAutoSave() {
 
 /** 浏览器通知 + 声音提醒 */
 function pomoNotify() {
-  // 声音提醒（Web Audio API - 短促提示音）
+  // 声音提醒 — 复用 pomoStart 时预创建的 AudioContext
   try {
-    const ctx = new (window.AudioContext || window.webkitAudioContext)();
-    const osc = ctx.createOscillator();
-    const gain = ctx.createGain();
+    var ctx = pomoState.audioCtx;
+    if (!ctx) {
+      ctx = new (window.AudioContext || window.webkitAudioContext)();
+      pomoState.audioCtx = ctx;
+    }
+    if (ctx.state === 'suspended') ctx.resume();
+    var osc = ctx.createOscillator();
+    var gain = ctx.createGain();
     osc.connect(gain);
     gain.connect(ctx.destination);
     osc.type = 'sine';
@@ -324,13 +337,17 @@ function pomoNotify() {
     osc.stop(ctx.currentTime + 0.5);
   } catch (e) {}
 
-  // 桌面通知
+  // 桌面通知（去掉 silent:true，允许系统提示音）
   if ('Notification' in window && Notification.permission === 'granted') {
-    new Notification('⏱ 专注完成', {
+    new Notification('\u23F1 专注完成', {
       body: '倒计时结束，你已专注 ' + (pomoState.targetSec / 60) + ' 分钟！',
-      icon: '/static/favicon.ico',
-      silent: true
+      icon: '/static/favicon.ico'
     });
+  }
+
+  // 手机振动（短-长-短 模式）
+  if (navigator.vibrate) {
+    navigator.vibrate([100, 50, 200]);
   }
 }
 

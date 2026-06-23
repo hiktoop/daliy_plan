@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<title>测试 Web Audio 提示音</title>
+<style>
+  body { font-family: sans-serif; padding: 40px; text-align: center; }
+  button { padding: 16px 40px; font-size: 20px; margin: 10px; cursor: pointer; border-radius: 8px; border: 1px solid #ccc; }
+  .log { margin-top: 20px; font-size: 13px; color: #666; }
+  .ok { color: green; }
+  .err { color: red; }
+</style>
+</head>
+<body>
+<h2>Web Audio API 提示音测试</h2>
+<p>点击按钮播放三连音（C5→E5→G5）</p>
+<button onclick="testBeep()">播放提示音</button>
+<button onclick="testFromCallback()">模拟异步回调中播放</button>
+<div id="log" class="log"></div>
+
+<script>
+function log(msg, cls) {
+  var d = document.getElementById('log');
+  d.innerHTML += '<div class="' + (cls||'') + '">' + msg + '</div>';
+}
+
+var sharedCtx = null;
+
+function testBeep() {
+  log('=== 用户点击直接播放 ===');
+  try {
+    if (!sharedCtx) {
+      sharedCtx = new (window.AudioContext || window.webkitAudioContext)();
+      log('AudioContext 状态: ' + sharedCtx.state);
+    }
+    if (sharedCtx.state === 'suspended') {
+      sharedCtx.resume();
+      log('已执行 resume()');
+    }
+    var osc = sharedCtx.createOscillator();
+    var gain = sharedCtx.createGain();
+    osc.connect(gain);
+    gain.connect(sharedCtx.destination);
+    osc.type = 'sine';
+    gain.gain.value = 0.3;
+    osc.frequency.setValueAtTime(523, sharedCtx.currentTime);
+    osc.frequency.setValueAtTime(659, sharedCtx.currentTime + 0.15);
+    osc.frequency.setValueAtTime(784, sharedCtx.currentTime + 0.3);
+    gain.gain.exponentialRampToValueAtTime(0.01, sharedCtx.currentTime + 0.5);
+    osc.start(sharedCtx.currentTime);
+    osc.stop(sharedCtx.currentTime + 0.5);
+    log('✓ 音频已调度，你应该听到三连音', 'ok');
+    log('AudioContext 状态: ' + sharedCtx.state);
+  } catch(e) {
+    log('✗ 错误: ' + e.message, 'err');
+  }
+}
+
+function testFromCallback() {
+  log('=== 模拟 setInterval 异步回调 ===');
+  setTimeout(function() {
+    try {
+      if (!sharedCtx) {
+        var ctx = new (window.AudioContext || window.webkitAudioContext)();
+        log('new AudioContext() 状态: ' + ctx.state);
+        if (ctx.state === 'suspended') {
+          log('⚠ 新建的 AudioContext 处于 suspended 状态——这就是 bug 根因！', 'err');
+          ctx.resume();
+          log('resume() 后状态: ' + ctx.state);
+        }
+        sharedCtx = ctx;
+      }
+      var ctx = sharedCtx;
+      if (ctx.state === 'suspended') {
+        ctx.resume();
+        log('复用 ctx 前 resume(), 状态: ' + ctx.state);
+      }
+      var osc = ctx.createOscillator();
+      var gain = ctx.createGain();
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.type = 'sine';
+      gain.gain.value = 0.3;
+      osc.frequency.setValueAtTime(523, ctx.currentTime);
+      osc.frequency.setValueAtTime(659, ctx.currentTime + 0.15);
+      osc.frequency.setValueAtTime(784, ctx.currentTime + 0.3);
+      gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.5);
+      osc.start(ctx.currentTime);
+      osc.stop(ctx.currentTime + 0.5);
+      log('✓ 复用预创建的 AudioContext 播放成功', 'ok');
+      log('AudioContext 状态: ' + ctx.state);
+    } catch(e) {
+      log('✗ 错误: ' + e.message, 'err');
+    }
+  }, 500);
+}
+</script>
+</body>
+</html>
