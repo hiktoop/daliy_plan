@@ -217,18 +217,7 @@ function renderMorningCard(container, task, index, data, savedMorning) {
     controls.appendChild(kBtn);
   }
 
-  // Delete button (always at far right)
-  if (!readOnly) {
-    const del = document.createElement('button');
-    del.className = 'task-delete-btn';
-    del.innerHTML = '×';
-    del.title = '删除';
-    del.style.cssText = 'min-width:28px;min-height:28px;width:28px;height:28px;font-size:16px;';
-    del.onclick = function() { deleteTask(task.id); };
-    controls.appendChild(del);
-  }
-
-  // Priority star (both 事项 and 知识)
+  // ═══ Star + URL (both 事项 and 知识) ═══
   const star = document.createElement('button');
   star.className = 'priority-star' + (task.starred ? ' active' : '');
   star.innerHTML = task.starred ? '⭐' : '☆';
@@ -245,37 +234,41 @@ function renderMorningCard(container, task, index, data, savedMorning) {
     await API.saveDay(currentDate, d);
     await renderToday();
   };
+  controls.appendChild(star);
 
-  // URL link — for knowledge tasks, next to star in controls row
-  if (isKnowledge) {
-    const hasUrl = task.sourceUrl && task.sourceUrl.trim();
-    if (hasUrl) {
-      const linkBtn = document.createElement('a');
-      linkBtn.href = task.sourceUrl;
-      linkBtn.target = '_blank';
-      linkBtn.rel = 'noopener';
-      linkBtn.style.cssText = 'min-width:22px;min-height:22px;width:22px;height:22px;border-radius:5px;border:0.5px solid #6ee7b7;background:#ecfdf5;text-decoration:none;font-size:12px;display:flex;align-items:center;justify-content:center;opacity:0.9;flex-shrink:0;';
-      linkBtn.title = '打开学习资料';
-      linkBtn.innerHTML = '🔗';
-      linkBtn.onclick = function(e) { e.stopPropagation(); };
-      controls.appendChild(star);
-      controls.appendChild(linkBtn);
-    } else if (!readOnly) {
-      const addUrlBtn = document.createElement('button');
-      addUrlBtn.style.cssText = 'min-width:22px;min-height:22px;width:22px;height:22px;border-radius:5px;border:0.5px solid var(--border);background:transparent;cursor:pointer;font-size:12px;opacity:0.4;padding:0;flex-shrink:0;display:flex;align-items:center;justify-content:center;';
-      addUrlBtn.title = '贴上学习资料链接';
-      addUrlBtn.innerHTML = '🔗';
-      addUrlBtn.onclick = function(e) {
-        e.stopPropagation();
-        showUrlInline(controls, task.id);
-      };
-      controls.appendChild(star);
-      controls.appendChild(addUrlBtn);
-    } else {
-      controls.appendChild(star);
-    }
-  } else {
-    controls.appendChild(star);
+  // URL link button (both task types)
+  const hasUrl = task.sourceUrl && task.sourceUrl.trim();
+  if (hasUrl) {
+    const linkBtn = document.createElement('a');
+    linkBtn.href = task.sourceUrl;
+    linkBtn.target = '_blank';
+    linkBtn.rel = 'noopener';
+    linkBtn.style.cssText = 'min-width:22px;min-height:22px;width:22px;height:22px;border-radius:5px;border:0.5px solid #6ee7b7;background:#ecfdf5;text-decoration:none;font-size:12px;display:flex;align-items:center;justify-content:center;opacity:0.9;flex-shrink:0;';
+    linkBtn.title = '打开链接';
+    linkBtn.innerHTML = '🔗';
+    linkBtn.onclick = function(e) { e.stopPropagation(); };
+    controls.appendChild(linkBtn);
+  } else if (!readOnly) {
+    const addUrlBtn = document.createElement('button');
+    addUrlBtn.style.cssText = 'min-width:22px;min-height:22px;width:22px;height:22px;border-radius:5px;border:0.5px solid var(--border);background:transparent;cursor:pointer;font-size:12px;opacity:0.4;padding:0;flex-shrink:0;display:flex;align-items:center;justify-content:center;';
+    addUrlBtn.title = '贴上链接';
+    addUrlBtn.innerHTML = '🔗';
+    addUrlBtn.onclick = function(e) {
+      e.stopPropagation();
+      showUrlInline(controls, task.id);
+    };
+    controls.appendChild(addUrlBtn);
+  }
+
+  // Delete button (always last)
+  if (!readOnly) {
+    const del = document.createElement('button');
+    del.className = 'task-delete-btn';
+    del.innerHTML = '×';
+    del.title = '删除';
+    del.style.cssText = 'min-width:28px;min-height:28px;width:28px;height:28px;font-size:16px;';
+    del.onclick = function() { deleteTask(task.id); };
+    controls.appendChild(del);
   }
 
   topRow.appendChild(controls);
