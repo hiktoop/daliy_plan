@@ -93,11 +93,20 @@ writeIfChanged(path.join(DST, 'app.js'), read(path.join(SRC, 'shared', 'app.js')
 writeIfChanged(path.join(DST, 'api.js'), read(path.join(SRC, 'shared', 'api.js')));
 
 // ============================================================
-// 5. Copy static assets (style.css, quotes.js)
+// 5. Copy static assets (style.css from src, quotes.js from parent)
 // ============================================================
 console.log('Copying static assets...');
+// style.css lives alongside the source
+const styleSrc = path.join(SRC, 'style.css');
+if (fs.existsSync(styleSrc)) {
+  writeIfChanged(path.join(DST, 'style.css'), read(styleSrc));
+} else {
+  console.warn('  MISSING ' + styleSrc);
+}
+
+// quotes.js and other legacy assets from static/
 const staticRoot = path.join(SRC, '..');
-const assets = ['style.css', 'quotes.js', 'test-beep.html'];
+const assets = ['quotes.js', 'test-beep.html'];
 for (const a of assets) {
   const src = path.join(staticRoot, a);
   if (fs.existsSync(src)) {
