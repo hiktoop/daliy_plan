@@ -347,13 +347,6 @@ function renderMorningCard(container, task, index, data, savedMorning) {
       bottomRow.appendChild(addUrlBtn);
     }
 
-    if (!readOnly) {
-      const sched = document.createElement('span');
-      sched.style.cssText = 'font-size:10px;color:var(--text-3);';
-      sched.textContent = '1/2/4/7/15/30天';
-      sched.title = '艾宾浩斯复习时间表';
-      bottomRow.appendChild(sched);
-    }
     hasBottom = true;
   }
 
