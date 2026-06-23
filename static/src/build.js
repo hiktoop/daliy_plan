@@ -6,7 +6,10 @@ const fs = require('fs');
 const path = require('path');
 
 const SRC = __dirname;
-const DST = path.join(SRC, '..');
+const DST = path.join(SRC, '..', 'build');
+
+// Ensure build directory exists
+if (!fs.existsSync(DST)) fs.mkdirSync(DST, { recursive: true });
 
 // Page order matters — must match nav-tab order in index.html
 const PAGES = ['today', 'history', 'charts', 'pomodoro', 'habits', 'knowledge'];
@@ -88,5 +91,18 @@ writeIfChanged(path.join(DST, 'actions.js'), actionsJS);
 console.log('Copying shared files...');
 writeIfChanged(path.join(DST, 'app.js'), read(path.join(SRC, 'shared', 'app.js')));
 writeIfChanged(path.join(DST, 'api.js'), read(path.join(SRC, 'shared', 'api.js')));
+
+// ============================================================
+// 5. Copy static assets (style.css, quotes.js)
+// ============================================================
+console.log('Copying static assets...');
+const staticRoot = path.join(SRC, '..');
+const assets = ['style.css', 'quotes.js', 'test-beep.html'];
+for (const a of assets) {
+  const src = path.join(staticRoot, a);
+  if (fs.existsSync(src)) {
+    writeIfChanged(path.join(DST, a), read(src));
+  }
+}
 
 console.log('\nBuild complete!');

@@ -40,7 +40,7 @@ def create_app(db_path: str = None):
 
     @_app.get("/")
     async def root():
-        return FileResponse(STATIC_DIR / "index.html")
+        return FileResponse(STATIC_DIR / "build" / "index.html")
 
     _app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
 
