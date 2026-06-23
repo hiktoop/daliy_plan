@@ -1,9 +1,12 @@
 /* ═══════════════════════════════════════════════════════
-   actions.js — User action handlers
-   Depends on: app.js, api.js, render.js
+   actions.js — Auto-built from static/src/
+   DO NOT EDIT — edit pages/*/actions.js instead
 ═══════════════════════════════════════════════════════ */
 
-/* ─── Sync DOM inputs to day object ─── */
+
+/* ─── today Page ─── */
+
+/* actions.js — Today page interactions */
 
 function syncInputsToDay(d) {
   const inputs = document.querySelectorAll('#morning-task-list .task-input');
@@ -172,6 +175,48 @@ async function goToday() {
 }
 
 /* ─── Pomodoro Actions ─── */
+
+async function completeReview(reviewId, quality) {
+  try {
+    var q = quality || 5;
+    var res = await API.markReviewDone(reviewId, q);
+    if (res.status === 'graduated') {
+      showToast('🎓 已掌握！6轮复习完成');
+    } else {
+      var label = quality === 1 ? '已标记为忘了' : (quality === 3 ? '勉强记得' : '复习完成 ✓');
+      showToast(label + ' · 下次：' + res.nextReview + '（' + res.interval + '天后）');
+    }
+    await renderToday();
+  } catch(e) {
+    showToast('操作失败');
+  }
+}
+
+function reviewRemember(reviewId) {
+  completeReview(reviewId, 5);
+}
+
+function reviewForgot(reviewId) {
+  completeReview(reviewId, 1);
+}
+
+async function deleteReview(reviewId) {
+  if (!confirm('确定删除这个复习计划？')) return;
+  try {
+    await API.deleteReview(reviewId);
+    showToast('已删除');
+    await renderKnowledgeOverview();
+  } catch(e) {
+    showToast('删除失败');
+  }
+}
+
+/* ─── Knowledge Page ─── */
+
+
+/* ─── pomodoro Page ─── */
+
+/* actions.js — Pomodoro page interactions */
 
 async function pomoStart() {
   pomoState.taskId = document.getElementById('pomo-task-select').value || null;
@@ -369,6 +414,11 @@ function pomoBeepOnce() {
 
 /* ─── Habits Actions ─── */
 
+
+/* ─── habits Page ─── */
+
+/* actions.js — Habits page interactions */
+
 function showAddHabit() {
   document.getElementById('habit-add-card').style.display = '';
   document.getElementById('habit-add-name').focus();
@@ -467,42 +517,10 @@ async function archiveHabit(habitId) {
 
 /* ─── Review Actions ─── */
 
-async function completeReview(reviewId, quality) {
-  try {
-    var q = quality || 5;
-    var res = await API.markReviewDone(reviewId, q);
-    if (res.status === 'graduated') {
-      showToast('🎓 已掌握！6轮复习完成');
-    } else {
-      var label = quality === 1 ? '已标记为忘了' : (quality === 3 ? '勉强记得' : '复习完成 ✓');
-      showToast(label + ' · 下次：' + res.nextReview + '（' + res.interval + '天后）');
-    }
-    await renderToday();
-  } catch(e) {
-    showToast('操作失败');
-  }
-}
 
-function reviewRemember(reviewId) {
-  completeReview(reviewId, 5);
-}
+/* ─── knowledge Page ─── */
 
-function reviewForgot(reviewId) {
-  completeReview(reviewId, 1);
-}
-
-async function deleteReview(reviewId) {
-  if (!confirm('确定删除这个复习计划？')) return;
-  try {
-    await API.deleteReview(reviewId);
-    showToast('已删除');
-    await renderKnowledgeOverview();
-  } catch(e) {
-    showToast('删除失败');
-  }
-}
-
-/* ─── Knowledge Page ─── */
+/* actions.js — Knowledge page interactions */
 
 function showAddKnowledge() {
   document.getElementById('knowledge-add-card').style.display = '';
@@ -527,3 +545,4 @@ async function createKnowledge() {
     showToast('创建失败');
   }
 }
+

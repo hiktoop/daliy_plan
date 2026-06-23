@@ -1,0 +1,38 @@
+<div class="main">
+  <div style="display:flex;align-items:center;gap:12px;margin-bottom:20px;">
+    <span style="font-size:15px;font-weight:500;">知识总览</span>
+    <span style="font-size:12px;color:var(--text-3);" id="knowledge-overview-stats"></span>
+  </div>
+
+  <!-- Stats row -->
+  <div class="progress-row" id="knowledge-stats-row" style="margin-bottom:16px;"></div>
+
+  <!-- Three columns: learning / reviewing / graduated -->
+  <div class="knowledge-cols" id="knowledge-cols">
+    <!-- 📖 初学 -->
+    <div class="card">
+      <div class="card-title">📖 初学<span id="k-learning-count" style="font-size:11px;color:var(--text-3);margin-left:6px;"></span></div>
+      <div id="k-learning-list"></div>
+    </div>
+    <!-- 🔄 巩固 -->
+    <div class="card">
+      <div class="card-title">🔄 巩固<span id="k-reviewing-count" style="font-size:11px;color:var(--text-3);margin-left:6px;"></span></div>
+      <div id="k-reviewing-list"></div>
+    </div>
+    <!-- 🎓 已毕业 -->
+    <div class="card">
+      <div class="card-title" style="cursor:pointer;" onclick="var el=document.getElementById('k-graduated-list');el.style.display=el.style.display==='none'?'':'none';">
+        🎓 已毕业<span id="k-graduated-count" style="font-size:11px;color:var(--text-3);margin-left:6px;"></span>
+        <span style="font-size:10px;color:var(--text-3);margin-left:auto;">点击折叠</span>
+      </div>
+      <div id="k-graduated-list"></div>
+    </div>
+  </div>
+
+  <!-- Empty state -->
+  <div id="knowledge-empty" class="empty-state" style="display:none;">
+    <div class="empty-icon">📚</div>
+    还没有知识记录<br>
+    <span style="font-size:12px;color:var(--text-3);">在"今日"页面添加知识类型事项，完成复习后会自动出现在这里</span>
+  </div>
+</div>

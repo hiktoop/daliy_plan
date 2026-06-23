@@ -1,0 +1,97 @@
+<div class="main pomodoro-main">
+
+  <!-- Mode toggle -->
+  <div class="pomo-mode-bar">
+    <button class="pomo-mode-btn active" id="pomo-mode-stopwatch" onclick="pomoSetMode('stopwatch')">正计时</button>
+    <button class="pomo-mode-btn" id="pomo-mode-countdown" onclick="pomoSetMode('countdown')">倒计时</button>
+  </div>
+
+  <!-- Timer ring + presets row -->
+  <div class="pomo-timer-section">
+    <div class="pomodoro-ring-wrap">
+      <svg class="pomodoro-ring" viewBox="0 0 200 200" id="pomo-svg">
+        <circle cx="100" cy="100" r="90" fill="none" stroke="var(--border)" stroke-width="6"/>
+        <circle cx="100" cy="100" r="90" fill="none" stroke="var(--accent)" stroke-width="6"
+          stroke-linecap="round" stroke-dasharray="565.5" stroke-dashoffset="0"
+          id="pomo-progress" transform="rotate(-90 100 100)"/>
+      </svg>
+      <div class="pomodoro-time" id="pomo-time">00:00</div>
+      <div class="pomodoro-label" id="pomo-label">准备开始</div>
+    </div>
+
+    <!-- Countdown presets (hidden for stopwatch mode) -->
+    <div class="pomo-presets" id="pomo-presets" style="display:none;">
+      <button class="pomo-preset-btn" data-min="15" onclick="pomoSetPreset(15)">15 分</button>
+      <button class="pomo-preset-btn active" data-min="25" onclick="pomoSetPreset(25)">25 分</button>
+      <button class="pomo-preset-btn" data-min="45" onclick="pomoSetPreset(45)">45 分</button>
+      <button class="pomo-preset-btn" data-min="60" onclick="pomoSetPreset(60)">60 分</button>
+      <div class="pomo-custom-wrap">
+        <input type="number" class="pomo-custom-input" id="pomo-custom-min" placeholder="自定义" min="1" max="180" value="25" onchange="pomoSetCustom()">
+        <span class="pomo-custom-unit">分</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Controls row -->
+  <div class="pomodoro-controls">
+    <select class="pomo-select" id="pomo-task-select" onchange="pomoSelectTask()">
+      <option value="">-- 不关联任务 --</option>
+    </select>
+    <div id="pomo-active-task" style="display:none;font-size:12px;color:var(--text-3);">
+      关联：<span id="pomo-task-name" style="color:var(--text);"></span>
+    </div>
+    <div class="pomo-btn-group">
+      <button class="pomo-btn pomo-start" id="pomo-btn-start" onclick="pomoStart()">▶ 开始</button>
+      <button class="pomo-btn pomo-pause" id="pomo-btn-pause" onclick="pomoPause()" style="display:none;">⏸ 暂停</button>
+      <button class="pomo-btn pomo-stop" id="pomo-btn-stop" onclick="pomoStop()" style="display:none;">⏹ 完成</button>
+      <button class="pomo-btn pomo-reset" id="pomo-btn-reset" onclick="pomoReset()" style="display:none;">↺ 重置</button>
+    </div>
+  </div>
+
+  <!-- Bottom grid: stats + history side by side -->
+  <div class="pomo-bottom-grid">
+    <!-- Today stats -->
+    <div class="card pomo-stats-card">
+      <div class="card-title">今日专注</div>
+      <div class="pomo-stats-grid" id="pomo-daily-metrics">
+        <div class="pomo-stat-item">
+          <div class="pomo-stat-val green" id="pomo-total-time">0 分钟</div>
+          <div class="pomo-stat-lbl">总时长</div>
+        </div>
+        <div class="pomo-stat-item">
+          <div class="pomo-stat-val" id="pomo-session-count">0</div>
+          <div class="pomo-stat-lbl">专注次数</div>
+        </div>
+        <div class="pomo-stat-item">
+          <div class="pomo-stat-val" id="pomo-avg-time">—</div>
+          <div class="pomo-stat-lbl">平均时长</div>
+        </div>
+        <div class="pomo-stat-item">
+          <div class="pomo-stat-val" id="pomo-streak">—</div>
+          <div class="pomo-stat-lbl">当前连续</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Session history -->
+    <div class="card pomo-history-card">
+      <div class="card-title">今日记录</div>
+      <div id="pomo-history-wrap">
+        <table class="pomo-history-table" id="pomo-history-table" style="display:none;">
+          <thead>
+            <tr>
+              <th>开始时间</th>
+              <th>时长</th>
+              <th>关联任务</th>
+            </tr>
+          </thead>
+          <tbody id="pomo-history-tbody"></tbody>
+        </table>
+        <div id="pomo-history-empty" class="empty-state" style="padding:20px;">
+          <div class="empty-icon">⏱</div>还没有专注记录
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>

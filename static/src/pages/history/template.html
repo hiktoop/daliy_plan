@@ -1,0 +1,60 @@
+<div class="main">
+  <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;">
+    <span style="font-size:15px;font-weight:500;">历史记录</span>
+    <div class="view-toggle" id="history-view-toggle" style="display:flex;border-radius:8px;overflow:hidden;border:1px solid var(--border-md);">
+      <button class="view-toggle-btn active" data-view="table" onclick="switchHistoryView('table')">列表</button>
+      <button class="view-toggle-btn" data-view="calendar" onclick="switchHistoryView('calendar')">日历</button>
+    </div>
+    <span style="font-size:12px;color:var(--text-3);margin-left:auto;" id="history-count"></span>
+  </div>
+
+  <!-- Table View -->
+  <div class="card" style="padding:0;overflow:hidden;" id="history-table-card">
+    <div style="overflow-x:auto;">
+      <table class="history-table" id="history-table">
+        <thead>
+          <tr>
+            <th style="width:100px;">日期</th>
+            <th>任务</th>
+            <th style="width:70px;text-align:center;">完成率</th>
+            <th style="width:60px;"></th>
+          </tr>
+        </thead>
+        <tbody id="history-tbody"></tbody>
+      </table>
+    </div>
+    <div id="history-empty" class="empty-state" style="display:none;">
+      <div class="empty-icon">&#128203;</div>
+      还没有任何记录，去今日页面开始填写吧
+    </div>
+  </div>
+
+  <!-- Calendar View -->
+  <div class="card" id="history-calendar-card" style="display:none;padding:12px;">
+    <!-- Month navigation -->
+    <div class="cal-nav">
+      <button class="cal-nav-btn" onclick="calNavMonth(-1)" title="上个月">&#8249;</button>
+      <span class="cal-nav-label" id="cal-month-label">2026年6月</span>
+      <button class="cal-nav-btn" onclick="calNavMonth(1)" title="下个月">&#8250;</button>
+    </div>
+    <!-- Weekday headers -->
+    <div class="cal-weekdays">
+      <span>一</span><span>二</span><span>三</span><span>四</span><span>五</span><span>六</span><span>日</span>
+    </div>
+    <!-- Calendar grid -->
+    <div class="cal-grid" id="cal-grid"></div>
+    <!-- Legend -->
+    <div class="cal-legend">
+      <span class="cal-legend-item"><span class="cal-dot cal-dot-full"></span> 全部完成</span>
+      <span class="cal-legend-item"><span class="cal-dot cal-dot-partial"></span> 部分完成</span>
+      <span class="cal-legend-item"><span class="cal-dot cal-dot-pending"></span> 待复盘</span>
+      <span class="cal-legend-item"><span class="cal-dot cal-dot-empty"></span> 无记录</span>
+    </div>
+  </div>
+
+  <!-- Calendar tooltip (positioned absolutely) -->
+  <div class="cal-tooltip" id="cal-tooltip" style="display:none;">
+    <div class="cal-tooltip-date" id="cal-tooltip-date"></div>
+    <div class="cal-tooltip-list" id="cal-tooltip-list"></div>
+  </div>
+</div>

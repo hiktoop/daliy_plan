@@ -1,0 +1,38 @@
+<div class="main">
+  <div style="font-size:15px;font-weight:500;margin-bottom:16px;">数据可视化</div>
+  <div class="card">
+    <div class="card-title">近30天完成率趋势</div>
+    <div class="chart-wrap">
+      <canvas id="chart-trend" role="img" aria-label="近30天每日任务完成率折线图"></canvas>
+    </div>
+  </div>
+  <div class="chart-grid">
+    <div class="card">
+      <div class="card-title">完成状态分布</div>
+      <div class="chart-wrap-sm">
+        <canvas id="chart-status" role="img" aria-label="任务完成状态饼图"></canvas>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">每日任务数量</div>
+      <div class="chart-wrap-sm">
+        <canvas id="chart-count" role="img" aria-label="每日任务数量柱状图"></canvas>
+      </div>
+    </div>
+  </div>
+  <div class="card" style="margin-top:0;">
+    <div class="card-title">综合统计</div>
+    <div class="progress-row" id="global-metrics"></div>
+  </div>
+  <div class="card" style="margin-top:16px;">
+    <div class="card-title">艾宾浩斯遗忘曲线</div>
+    <div class="chart-wrap" style="height:260px;">
+      <canvas id="chart-ebbinghaus" role="img" aria-label="艾宾浩斯遗忘曲线与复习节点"></canvas>
+    </div>
+    <div style="font-size:11px;color:var(--text-3);margin-top:8px;text-align:center;">
+      <span style="color:#a32d2d;">红色虚线</span> = 不复习的遗忘曲线 · 
+      <span style="color:#3b6d11;">绿色实线</span> = 按时复习的记忆保持 · 
+      竖线 = 复习节点（SM-2 动态间隔）
+    </div>
+  </div>
+</div>

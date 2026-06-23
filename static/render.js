@@ -1,7 +1,26 @@
 /* ═══════════════════════════════════════════════════════
-   render.js — All rendering functions
-   Depends on: app.js, api.js
+   render.js — Auto-built from static/src/
+   DO NOT EDIT — edit pages/*/render.js instead
 ═══════════════════════════════════════════════════════ */
+
+/* ─── Shared Utils ─── */
+
+/* ═══════════════════════════════════════════════════════
+   shared/utils.js — Utility functions used across all pages
+═══════════════════════════════════════════════════════ */
+
+function _fmt(d) { return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
+
+function escapeHTML(str) {
+  if (!str) return '';
+  return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
+function destroyChart(id) {
+  if (charts[id]) { charts[id].destroy(); delete charts[id]; }
+}
+
+/* ─── Public API ─── */
 
 /* ─── Public API (for future extensions) ─── */
 
@@ -41,10 +60,48 @@ window.DailyTasksAPI = {
   },
   async getRecurringTasks() { return (await API.getPlans()).plans; }
 };
-function _fmt(d) { return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
 
-/* ─── Today Page ─── */
 
+/* ─── today Page ─── */
+
+/* render.js — Today page rendering */
+
+window.DailyTasksAPI = {
+  async getAllData() { return API.listDays(); },
+  async getWeekData(isoWeekStr) {
+    const all = await API.listDays();
+    if (!isoWeekStr) {
+      const today = new Date(todayStr() + 'T00:00:00');
+      const dow = today.getDay() === 0 ? 6 : today.getDay() - 1;
+      const mon = new Date(today); mon.setDate(today.getDate() - dow);
+      const sun = new Date(mon); sun.setDate(mon.getDate() + 6);
+      return all.filter(d => d.date >= _fmt(mon) && d.date <= _fmt(sun));
+    }
+    const [y, w] = isoWeekStr.split('-W').map(Number);
+    const jan4 = new Date(y, 0, 4);
+    const mon = new Date(jan4); mon.setDate(jan4.getDate() - ((jan4.getDay()||7)-1) + (w-1)*7);
+    const sun = new Date(mon); sun.setDate(mon.getDate() + 6);
+    return all.filter(d => d.date >= _fmt(mon) && d.date <= _fmt(sun));
+  },
+  async getMonthData(yearMonth) {
+    const prefix = yearMonth || todayStr().slice(0,7);
+    return (await API.listDays()).filter(d => d.date.startsWith(prefix));
+  },
+  computeStats(days) {
+    let total = 0, done = 0, partial = 0, miss = 0;
+    days.forEach(day => {
+      (day.morningTasks||[]).forEach(t => {
+        if (!(t.text||'').trim()) return;
+        total++;
+        if (t.status === 'done') done++;
+        else if (t.status === 'partial') partial++;
+        else if (t.status === 'miss') miss++;
+      });
+    });
+    return { total, done, partial, miss, rate: total > 0 ? Math.round(done/total*100) : null };
+  },
+  async getRecurringTasks() { return (await API.getPlans()).plans; }
+};
 async function renderToday() {
   document.getElementById('today-date-label').textContent = dateLabel(currentDate);
   document.getElementById('today-weekday').textContent = weekdayLabel(currentDate);
@@ -136,7 +193,6 @@ async function renderToday() {
     }
   }
 }
-
 async function renderMorningTasks(ul, data, savedMorning) {
   let streaks = {};
   try {
@@ -489,14 +545,51 @@ function updateAddBtn(count) {
   const hint = document.getElementById('morning-hint');
   if (hint) hint.textContent = count >= 10 ? '最多 10 项' : `${count}/10 项`;
 }
+function renderReviewSection(reviewTasks) {
+  const section = document.getElementById('review-section');
+  const list = document.getElementById('review-list');
+  if (!reviewTasks || reviewTasks.length === 0) {
+    section.style.display = 'none';
+    return;
+  }
+  section.style.display = '';
+  list.innerHTML = reviewTasks.map(function(r) {
+    var round = (r._reviewRound || 0) + 1;
+    var roundLabel = '第' + round + '次复习';
+    var urlLink = '';
+    if (r.sourceUrl && r.sourceUrl.trim()) {
+      urlLink = '<a href="' + escapeHTML(r.sourceUrl) + '" target="_blank" rel="noopener" ' +
+        'class="review-url-link" onclick="event.stopPropagation()" ' +
+        'title="打开学习资料">🔗 原文</a>';
+    }
+    // Show evening note if exists
+    var noteHtml = '';
+    if (r.eveningNote && r.eveningNote.trim()) {
+      noteHtml = '<div class="review-note">💬 ' + escapeHTML(r.eveningNote) + '</div>';
+    }
+    return '<div class="review-item">' +
+      '<span class="review-tag">复习</span>' +
+      '<span class="review-text">' + escapeHTML(r.text.replace('复习：', '')) + '</span>' +
+      urlLink +
+      '<span class="review-round">' + roundLabel + '</span>' +
+      noteHtml +
+      '<div class="review-feedback">' +
+        '<button class="review-btn review-remember" onclick="event.stopPropagation();reviewRemember(\'' + r.reviewId + '\')" title="记得">✅ 记得</button>' +
+        '<button class="review-btn review-forgot" onclick="event.stopPropagation();reviewForgot(\'' + r.reviewId + '\')" title="忘了">❌ 忘了</button>' +
+      '</div>' +
+      '</div>';
+  }).join('');
+}
 
-/* ─── History Page ─── */
+
+/* ─── history Page ─── */
+
+/* render.js — History page rendering */
 
 // View state
 let historyView = localStorage.getItem('historyView') || 'table';
 // Calendar navigation state
 let calYear, calMonth;
-
 async function renderHistory() {
   const days = await API.listDays();
   document.getElementById('history-count').textContent = `共 ${days.length} 条记录`;
@@ -522,9 +615,6 @@ function switchHistoryView(view) {
   localStorage.setItem('historyView', view);
   renderHistory();
 }
-
-/* ── Table View ── */
-
 function renderHistoryTable(days) {
   const tbody = document.getElementById('history-tbody');
   const empty = document.getElementById('history-empty');
@@ -779,7 +869,10 @@ function hideCalTooltip() {
   }
 }
 
-/* ─── Charts Page ─── */
+
+/* ─── charts Page ─── */
+
+/* render.js — Charts page rendering */
 
 async function renderCharts() {
   const days = await API.listDays();
@@ -1017,11 +1110,10 @@ function renderEbbinghausCurve() {
   });
 }
 
-function destroyChart(id) {
-  if (charts[id]) { charts[id].destroy(); delete charts[id]; }
-}
 
-/* ─── Pomodoro Page ─── */
+/* ─── pomodoro Page ─── */
+
+/* render.js — Pomodoro page rendering */
 
 async function renderPomodoro() {
   // Load task list for selector
@@ -1214,7 +1306,10 @@ function pomoSetCustom() {
   }
 }
 
-/* ─── Habits Page ─── */
+
+/* ─── habits Page ─── */
+
+/* render.js — Habits page rendering */
 
 async function renderHabits() {
   document.getElementById('habits-today-label').textContent =
@@ -1377,48 +1472,10 @@ async function renderHeatmap() {
 
 /* ─── Review Section (in Today page) ─── */
 
-function renderReviewSection(reviewTasks) {
-  const section = document.getElementById('review-section');
-  const list = document.getElementById('review-list');
-  if (!reviewTasks || reviewTasks.length === 0) {
-    section.style.display = 'none';
-    return;
-  }
-  section.style.display = '';
-  list.innerHTML = reviewTasks.map(function(r) {
-    var round = (r._reviewRound || 0) + 1;
-    var roundLabel = '第' + round + '次复习';
-    var urlLink = '';
-    if (r.sourceUrl && r.sourceUrl.trim()) {
-      urlLink = '<a href="' + escapeHTML(r.sourceUrl) + '" target="_blank" rel="noopener" ' +
-        'class="review-url-link" onclick="event.stopPropagation()" ' +
-        'title="打开学习资料">🔗 原文</a>';
-    }
-    // Show evening note if exists
-    var noteHtml = '';
-    if (r.eveningNote && r.eveningNote.trim()) {
-      noteHtml = '<div class="review-note">💬 ' + escapeHTML(r.eveningNote) + '</div>';
-    }
-    return '<div class="review-item">' +
-      '<span class="review-tag">复习</span>' +
-      '<span class="review-text">' + escapeHTML(r.text.replace('复习：', '')) + '</span>' +
-      urlLink +
-      '<span class="review-round">' + roundLabel + '</span>' +
-      noteHtml +
-      '<div class="review-feedback">' +
-        '<button class="review-btn review-remember" onclick="event.stopPropagation();reviewRemember(\'' + r.reviewId + '\')" title="记得">✅ 记得</button>' +
-        '<button class="review-btn review-forgot" onclick="event.stopPropagation();reviewForgot(\'' + r.reviewId + '\')" title="忘了">❌ 忘了</button>' +
-      '</div>' +
-      '</div>';
-  }).join('');
-}
 
-function escapeHTML(str) {
-  if (!str) return '';
-  return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
-}
+/* ─── knowledge Page ─── */
 
-/* ─── Knowledge Page ─── */
+/* render.js — Knowledge page rendering */
 
 async function renderKnowledge() {
   document.getElementById('knowledge-today-label').textContent =
@@ -1619,7 +1676,4 @@ async function setTaskSourceUrl(taskId, url) {
   } catch(e) {
     showToast('保存失败');
   }
-}
 
-/* ─── Helpers ─── */
-// NOTE: Notebook system migrated to Vue 3 – see static/notebook/notebook.js

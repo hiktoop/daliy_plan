@@ -4,16 +4,16 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>每日任务追踪</title>
-<link rel="stylesheet" href="/static/style.css?v=33">
+<link rel="stylesheet" href="/static/style.css?v=34">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/vditor@3.10.6/dist/index.css">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/vditor@3.10.6/dist/index.min.js"></script>
 <!-- JS modules: loaded in dependency order -->
-<script src="/static/app.js?v=33"></script>
-<script src="/static/api.js?v=33"></script>
-<script src="/static/render.js?v=33"></script>
-  <script src="/static/actions.js?v=33"></script>
-  <script src="/static/quotes.js?v=33"></script>
+<script src="/static/app.js?v=34"></script>
+<script src="/static/api.js?v=34"></script>
+<script src="/static/render.js?v=34"></script>
+<script src="/static/actions.js?v=34"></script>
+<script src="/static/quotes.js?v=34"></script>
 </head>
 <body>
 
@@ -34,8 +34,6 @@
 </header>
 
 <div class="toast" id="toast"></div>
-
-<!-- TODAY -->
 
 <!-- Daily Quote -->
 <div id="daily-quote-wrap" style="text-align:center;padding:8px 12px;font-size:13px;color:var(--text-2);font-style:italic;min-height:28px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;">
@@ -109,9 +107,8 @@
     </div>
   </div>
 </div>
-</div>
 
-<!-- HISTORY -->
+</div>
 <div class="page" id="page-history">
 <div class="main">
   <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;">
@@ -173,9 +170,8 @@
     <div class="cal-tooltip-list" id="cal-tooltip-list"></div>
   </div>
 </div>
-</div>
 
-<!-- POMODORO -->
+</div>
 <div class="page" id="page-pomodoro">
 <div class="main pomodoro-main">
 
@@ -274,9 +270,8 @@
   </div>
 
 </div>
-</div>
 
-<!-- HABITS -->
+</div>
 <div class="page" id="page-habits">
 <div class="main">
   <!-- Top bar: title + add button -->
@@ -346,9 +341,8 @@
     <div class="heatmap-wrap" id="habits-heatmap"></div>
   </div>
 </div>
-</div>
 
-<!-- KNOWLEDGE OVERVIEW -->
+</div>
 <div class="page" id="page-knowledge">
 <div class="main">
   <div style="display:flex;align-items:center;gap:12px;margin-bottom:20px;">
@@ -388,12 +382,8 @@
     <span style="font-size:12px;color:var(--text-3);">在"今日"页面添加知识类型事项，完成复习后会自动出现在这里</span>
   </div>
 </div>
+
 </div>
-
-<!-- DIARY / NOTES — Vue 3 笔记本 -->
-<div class="page" id="page-diary"></div>
-
-<!-- CHARTS -->
 <div class="page" id="page-charts">
 <div class="main">
   <div style="font-size:15px;font-weight:500;margin-bottom:16px;">数据可视化</div>
@@ -433,12 +423,16 @@
     </div>
   </div>
 </div>
+
 </div>
+
+<!-- DIARY -->
+<div class="page" id="page-diary"></div>
 
 <script>
 // Boot: render today page on load
 renderToday();
 </script>
-<script src="/static/notebook/dist/assets/notebook.js?v=33"></script>
+<script src="/static/notebook/dist/assets/notebook.js?v=34"></script>
 </body>
 </html>

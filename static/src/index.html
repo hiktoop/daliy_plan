@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>每日任务追踪</title>
+<link rel="stylesheet" href="/static/style.css?v=34">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/vditor@3.10.6/dist/index.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/vditor@3.10.6/dist/index.min.js"></script>
+<!-- JS modules: loaded in dependency order -->
+<script src="/static/app.js?v=34"></script>
+<script src="/static/api.js?v=34"></script>
+<script src="/static/render.js?v=34"></script>
+<script src="/static/actions.js?v=34"></script>
+<script src="/static/quotes.js?v=34"></script>
+</head>
+<body>
+
+<header class="header">
+  <div class="header-logo">
+    <div class="logo-dot"></div>
+    每日任务
+  </div>
+  <nav class="nav-tabs">
+    <button class="nav-tab active" onclick="switchPage('today')">今日</button>
+    <button class="nav-tab" onclick="switchPage('history')">历史</button>
+    <button class="nav-tab" onclick="switchPage('charts')">图表</button>
+    <button class="nav-tab" onclick="switchPage('pomodoro')">专注</button>
+    <button class="nav-tab" onclick="switchPage('habits')">习惯</button>
+    <button class="nav-tab" onclick="switchPage('knowledge')">知识</button>
+    <button class="nav-tab" onclick="switchPage('diary')">日记</button>
+  </nav>
+</header>
+
+<div class="toast" id="toast"></div>
+
+<!-- Daily Quote -->
+<div id="daily-quote-wrap" style="text-align:center;padding:8px 12px;font-size:13px;color:var(--text-2);font-style:italic;min-height:28px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;">
+  <span id="daily-quote"></span>
+</div>
+
+<!-- INSERT:today -->
+<!-- INSERT:history -->
+<!-- INSERT:pomodoro -->
+<!-- INSERT:habits -->
+<!-- INSERT:knowledge -->
+<!-- INSERT:charts -->
+
+<!-- DIARY -->
+<div class="page" id="page-diary"></div>
+
+<script>
+// Boot: render today page on load
+renderToday();
+</script>
+<script src="/static/notebook/dist/assets/notebook.js?v=34"></script>
+</body>
+</html>
