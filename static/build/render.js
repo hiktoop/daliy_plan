@@ -159,40 +159,12 @@ async function renderToday() {
   });
   data.morningTasks = regularTasks;
 
-  // Layout: knowledge section + divider + plain section
-  const knowledgeTasks = regularTasks.filter(t => t.itemType === 'knowledge');
-  const plainTasks = regularTasks.filter(t => t.itemType !== 'knowledge');
-
-  // Morning
+  // Morning — render all tasks flat (type tag on card itself distinguishes 知识/事项)
   const savedMorning = !!data.savedMorning;
   const container = document.getElementById('morning-task-cards');
   container.innerHTML = '';
 
-  // Knowledge section header
-  if (knowledgeTasks.length > 0) {
-    const kh = document.createElement('div');
-    kh.className = 'section-header';
-    kh.innerHTML = '<span class="section-header-icon">📚</span><span class="section-header-label">知识</span>';
-    container.appendChild(kh);
-    knowledgeTasks.forEach((task, i) => renderMorningCard(container, task, i, data, savedMorning));
-  }
-
-  // Divider
-  if (knowledgeTasks.length > 0 && plainTasks.length > 0) {
-    const divider = document.createElement('div');
-    divider.className = 'section-divider';
-    container.appendChild(divider);
-  }
-
-  // Plain tasks section header
-  if (plainTasks.length > 0) {
-    const ph = document.createElement('div');
-    ph.className = 'section-header';
-    ph.innerHTML = '<span class="section-header-icon">📋</span><span class="section-header-label">事项</span>';
-    container.appendChild(ph);
-    const kCount = knowledgeTasks.length;
-    plainTasks.forEach((task, i) => renderMorningCard(container, task, kCount + i, data, savedMorning));
-  }
+  regularTasks.forEach((task, i) => renderMorningCard(container, task, i, data, savedMorning));
 
   document.getElementById('btn-save-morning').style.display = savedMorning ? 'none' : '';
   document.getElementById('add-task-area').style.display = savedMorning ? 'none' : ((regularTasks.length >= 10) ? 'none' : '');
@@ -240,16 +212,7 @@ function renderMorningCard(container, task, index, data, savedMorning) {
   const idx = document.createElement('div');
   idx.className = 'task-card-index';
   if (isKnowledge) idx.classList.add('knowledge-idx');
-  if (task.plan) {
-    const colors = {
-      long:  'background:#d4e6fa;color:#0d4f8a;border-color:#8bb8e0;',
-      week:  'background:#fce4d6;color:#a64e0a;border-color:#f0b080;',
-      month: 'background:#e0d4f5;color:#5c2d91;border-color:#b595d8;'
-    };
-    idx.style.cssText = `min-width:28px;height:28px;${colors[task.plan]||colors.long}`;
-    idx.textContent = PLAN_META[task.plan].icon;
-    idx.title = PLAN_META[task.plan].label;
-  } else if (isHabit) {
+  if (isHabit) {
     idx.textContent = '🌀';
     idx.title = '习惯';
     idx.style.cssText = 'min-width:28px;height:28px;display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0;';
@@ -334,26 +297,10 @@ function renderMorningCard(container, task, index, data, savedMorning) {
   topRow.appendChild(controls);
   card.appendChild(topRow);
 
-  // ═══ Bottom row: plan + star + url + knowledge info ═══
+  // ═══ Bottom row: star + url + knowledge info ═══
   const bottomRow = document.createElement('div');
   bottomRow.className = 'task-card-bottom';
   let hasBottom = false;
-
-  // Plan buttons (only in edit mode)
-  if (!readOnly) {
-    createPlanButtons(bottomRow, task.id, task.plan);
-    hasBottom = true;
-  } else if (task.plan) {
-    // Read-only: show plan tag
-    const pTag = document.createElement('span');
-    pTag.style.cssText = 'font-size:10px;padding:1px 6px;border-radius:6px;';
-    pTag.textContent = PLAN_META[task.plan].icon + ' ' + PLAN_META[task.plan].label;
-    const pc = {long:'#d4e6fa',week:'#fce4d6',month:'#e0d4f5'};
-    pTag.style.background = pc[task.plan]||pc.long;
-    pTag.style.color = {long:'#0d4f8a',week:'#a64e0a',month:'#5c2d91'}[task.plan];
-    bottomRow.appendChild(pTag);
-    hasBottom = true;
-  }
 
   // Priority star
   const star = document.createElement('button');
@@ -421,27 +368,6 @@ function renderMorningCard(container, task, index, data, savedMorning) {
   }, 0);
 }
 
-/* ─── Plan Buttons (inline in bottom row) ─── */
-function createPlanButtons(container, taskId, currentPlan) {
-  const group = document.createElement('span');
-  group.style.cssText = 'display:inline-flex;align-items:center;gap:3px;flex-wrap:wrap;';
-
-  const types = ['long', 'week', 'month'];
-  types.forEach(function(pt) {
-    const btn = document.createElement('button');
-    btn.className = 'plan-btn' + (currentPlan === pt ? ' active-' + pt : '');
-    btn.textContent = PLAN_META[pt].icon + ' ' + PLAN_META[pt].label;
-    btn.title = currentPlan === pt ? '点击取消' : (PLAN_META[pt].days ? '连续' + PLAN_META[pt].days + '天自动出现' : '每天自动出现，直到取消');
-    btn.onclick = function(e) {
-      e.stopPropagation();
-      setPlan(taskId, pt);
-    };
-    group.appendChild(btn);
-  });
-
-  container.appendChild(group);
-}
-
 /* ─── URL Input (inline in bottom row) ─── */
 function showUrlInline(container, taskId) {
   // Remove existing URL input if any
@@ -484,11 +410,6 @@ function renderEveningForm(data) {
   const container = document.getElementById('evening-task-cards');
   container.innerHTML = '';
   const realTasks = (data.morningTasks||[]).filter(t => (t.text||'').trim());
-  const habits = realTasks.filter(t => (t.kind||'task') === 'habit');
-  const tasks = realTasks.filter(t => (t.kind||'task') !== 'habit');
-  const knowledgeTasks = tasks.filter(t => t.itemType === 'knowledge');
-  const plainTasks = tasks.filter(t => t.itemType !== 'knowledge');
-
   function renderOne(task, idx) {
     const isKnowledge = task.itemType === 'knowledge';
     const isHabit = (task.kind||'task') === 'habit';
@@ -565,32 +486,7 @@ function renderEveningForm(data) {
   }
 
   let idx = 0;
-  if (habits.length > 0) {
-    const hh = document.createElement('div');
-    hh.className = 'section-header';
-    hh.innerHTML = '<span class="section-header-icon">🌀</span><span class="section-header-label">习惯</span>';
-    container.appendChild(hh);
-    habits.forEach(t => renderOne(t, idx++));
-  }
-  if (knowledgeTasks.length > 0) {
-    const kh = document.createElement('div');
-    kh.className = 'section-header';
-    kh.innerHTML = '<span class="section-header-icon">📚</span><span class="section-header-label">知识</span>';
-    container.appendChild(kh);
-    knowledgeTasks.forEach(t => renderOne(t, idx++));
-  }
-  if (knowledgeTasks.length > 0 && plainTasks.length > 0) {
-    const divider = document.createElement('div');
-    divider.className = 'section-divider';
-    container.appendChild(divider);
-  }
-  if (plainTasks.length > 0) {
-    const ph = document.createElement('div');
-    ph.className = 'section-header';
-    ph.innerHTML = '<span class="section-header-icon">📋</span><span class="section-header-label">事项</span>';
-    container.appendChild(ph);
-    plainTasks.forEach(t => renderOne(t, idx++));
-  }
+  realTasks.forEach(t => renderOne(t, idx++));
 
   document.getElementById('evening-note').value = data.eveningNote || '';
 }
@@ -598,10 +494,6 @@ function renderEveningForm(data) {
 /* ─── Evening Summary ─── */
 function renderEveningSummary(data) {
   const tasks = (data.morningTasks||[]).filter(t => (t.text||'').trim());
-  const habits = tasks.filter(t => (t.kind||'task') === 'habit');
-  const plainTasks = tasks.filter(t => (t.kind||'task') !== 'habit');
-  const knowledgeTasks = plainTasks.filter(t => t.itemType === 'knowledge');
-  const regularTasks = plainTasks.filter(t => t.itemType !== 'knowledge');
 
   const done = tasks.filter(t => t.status === 'done').length;
   const partial = tasks.filter(t => t.status === 'partial').length;
@@ -609,59 +501,36 @@ function renderEveningSummary(data) {
   const total = tasks.length;
   const rate = total > 0 ? Math.round(done/total*100) : 0;
 
-  let habitMetric = '';
-  if (habits.length > 0) {
-    const hDone = habits.filter(t => t.status === 'done').length;
-    const hRate = Math.round(hDone/habits.length*100);
-    habitMetric = `<div class="metric-card"><div class="metric-label">习惯完成率</div><div class="metric-value ${hRate>=80?'green':hRate>=50?'warn':'red'}">${hRate}%</div></div>`;
-  }
-
   document.getElementById('summary-metrics').innerHTML = `
     <div class="metric-card"><div class="metric-label">完成率</div><div class="metric-value ${rate>=80?'green':rate>=50?'warn':'red'}">${rate}%</div></div>
     <div class="metric-card"><div class="metric-label">已完成</div><div class="metric-value green">${done}</div></div>
     <div class="metric-card"><div class="metric-label">部分完成</div><div class="metric-value warn">${partial}</div></div>
     <div class="metric-card"><div class="metric-label">未完成</div><div class="metric-value red">${miss}</div></div>
-    ${habitMetric}
   `;
 
   const chipsEl = document.getElementById('summary-task-chips');
   chipsEl.innerHTML = '';
 
-  function renderChipSection(label, taskList) {
-    if (taskList.length === 0) return;
-    const lbl = document.createElement('div');
-    lbl.style.cssText = 'font-size:12px;font-weight:500;color:var(--text-2);margin:12px 0 6px;';
-    lbl.textContent = label;
-    chipsEl.appendChild(lbl);
-    const row = document.createElement('div');
-    row.className = 'chip-row';
-    taskList.forEach(function(t) {
-      const chip = document.createElement('span');
-      chip.className = 'chip chip-' + (t.status || 'none');
-      const text = (t.text||'').length > 20 ? t.text.slice(0,19)+'…' : t.text;
-      chip.textContent = text;
-      chip.title = t.text;
-      if (t.starred) chip.textContent = '⭐ ' + chip.textContent;
-      row.appendChild(chip);
-      if (t.eveningNote && t.eveningNote.trim()) {
-        const ns = document.createElement('span');
-        ns.style.cssText = 'font-size:11px;color:var(--text-3);margin-left:2px;';
-        ns.textContent = '💬';
-        ns.title = t.eveningNote;
-        row.appendChild(ns);
-      }
-    });
-    chipsEl.appendChild(row);
-  }
-
-  renderChipSection('🌀 习惯', habits);
-  renderChipSection('📚 知识', knowledgeTasks);
-  if (knowledgeTasks.length > 0 && regularTasks.length > 0) {
-    const sumDivider = document.createElement('div');
-    sumDivider.className = 'section-divider';
-    chipsEl.appendChild(sumDivider);
-  }
-  renderChipSection('📋 事项', regularTasks);
+  // Render all task chips flat (no grouping headers)
+  const row = document.createElement('div');
+  row.className = 'chip-row';
+  tasks.forEach(function(t) {
+    const chip = document.createElement('span');
+    chip.className = 'chip chip-' + (t.status || 'none');
+    const text = (t.text||'').length > 20 ? t.text.slice(0,19)+'…' : t.text;
+    chip.textContent = text;
+    chip.title = t.text;
+    if (t.starred) chip.textContent = '⭐ ' + chip.textContent;
+    row.appendChild(chip);
+    if (t.eveningNote && t.eveningNote.trim()) {
+      const ns = document.createElement('span');
+      ns.style.cssText = 'font-size:11px;color:var(--text-3);margin-left:2px;';
+      ns.textContent = '💬';
+      ns.title = t.eveningNote;
+      row.appendChild(ns);
+    }
+  });
+  chipsEl.appendChild(row);
 
   if (data.eveningNote) {
     const note = document.createElement('div');
