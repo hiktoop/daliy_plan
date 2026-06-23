@@ -1,6 +1,6 @@
 /* ═══════════════════════════════════════════════════════
    render.js — Auto-built from static/src/
-   DO NOT EDIT — edit pages/*/render.js instead
+   DO NOT EDIT — edit pages/{page}/render.js instead
 ═══════════════════════════════════════════════════════ */
 
 /* ─── Shared Utils ─── */

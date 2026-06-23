@@ -1,6 +1,6 @@
 /* ═══════════════════════════════════════════════════════
    actions.js — Auto-built from static/src/
-   DO NOT EDIT — edit pages/*/actions.js instead
+   DO NOT EDIT — edit pages/{page}/actions.js instead
 ═══════════════════════════════════════════════════════ */
 
 

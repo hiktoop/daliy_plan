@@ -51,7 +51,7 @@ writeIfChanged(path.join(DST, 'index.html'), html);
 console.log('Building render.js...');
 let renderJS = '/* ═══════════════════════════════════════════════════════\n';
 renderJS += '   render.js — Auto-built from static/src/\n';
-renderJS += '   DO NOT EDIT — edit pages/*/render.js instead\n';
+renderJS += '   DO NOT EDIT — edit pages/{page}/render.js instead\n';
 renderJS += '═══════════════════════════════════════════════════════ */\n\n';
 renderJS += '/* ─── Shared Utils ─── */\n\n';
 renderJS += read(path.join(SRC, 'shared', 'utils.js')) + '\n';
@@ -73,7 +73,7 @@ writeIfChanged(path.join(DST, 'render.js'), renderJS);
 console.log('Building actions.js...');
 let actionsJS = '/* ═══════════════════════════════════════════════════════\n';
 actionsJS += '   actions.js — Auto-built from static/src/\n';
-actionsJS += '   DO NOT EDIT — edit pages/*/actions.js instead\n';
+actionsJS += '   DO NOT EDIT — edit pages/{page}/actions.js instead\n';
 actionsJS += '═══════════════════════════════════════════════════════ */\n\n';
 
 for (const page of PAGES) {
