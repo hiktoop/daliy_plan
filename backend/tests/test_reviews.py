@@ -82,7 +82,7 @@ class TestMarkReviewDone:
 
     def test_mark_done_nonexistent(self, client):
         resp = client.post("/api/tasks/review/nonexistent/done?quality=5")
-        assert resp.json()["error"] == "not found"
+        assert resp.status_code == 404
 
     def test_graduate_after_6_rounds(self, client):
         create_resp = client.post("/api/tasks/review", json={

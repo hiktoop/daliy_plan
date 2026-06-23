@@ -1,11 +1,12 @@
 """Routes: /api/tasks — daily task CRUD + Ebbinghaus reviews with SM-2 dynamic intervals."""
 
 import json
+import logging
 import math
 import time
 from datetime import date as date_cls, timedelta
 
-from fastapi import APIRouter, Query
+from fastapi import APIRouter, HTTPException, Query
 from backend.db import get_db
 from backend.models import SaveDayPayload, TaskItem, ReviewItem, ReviewCreate
 from backend.services.plan_service import get_active_plans, _uid
@@ -84,7 +85,7 @@ def _inject_reviews(tasks: list, date_str: str) -> list:
                 "sourceUrl": src if src else None,
             })
     except Exception:
-        pass
+        logging.exception("_inject_reviews failed for date %s", date_str)
     return tasks
 
 
@@ -108,9 +109,12 @@ def _auto_create_reviews(date_str: str, tasks: list):
                     (rid, getattr(t, 'text', ''), start, source_url, evening_note, now, now),
                 )
             try:
-                t.reviewId = rid
+                if hasattr(t, 'reviewId'):
+                    t.reviewId = rid
+                elif isinstance(t, dict):
+                    t["reviewId"] = rid
             except Exception:
-                pass
+                logging.exception("Failed to set reviewId on task in _auto_create_reviews")
 
 
 @router.get("")
@@ -164,7 +168,7 @@ def mark_review_done(review_id: str, quality: int = Query(5, ge=0, le=5)):
     with get_db() as db:
         row = db.execute("SELECT * FROM reviews WHERE id=?", (review_id,)).fetchone()
         if not row:
-            return {"error": "not found"}
+            raise HTTPException(status_code=404, detail="Review not found")
         rnd = row["review_round"] + 1
         # Read SM-2 fields (graceful fallback for old rows)
         ef = row["ease_factor"] if "ease_factor" in row.keys() and row["ease_factor"] is not None else 2.5

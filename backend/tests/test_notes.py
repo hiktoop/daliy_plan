@@ -35,7 +35,7 @@ class TestDiary:
 
     def test_invalid_date_format(self, client):
         resp = client.get("/api/diary/not-a-date")
-        assert resp.json()["error"]
+        assert resp.status_code == 422
 
 
 class TestFolders:
@@ -65,7 +65,7 @@ class TestFolders:
         client.post("/api/folders", json={"id": "f001", "name": "Parent"})
         client.post("/api/folders", json={"id": "f002", "name": "Child", "parentId": "f001"})
         resp = client.put("/api/folders/f001", json={"parentId": "f002"})
-        assert resp.json()["error"] == "cannot move folder into its own descendant"
+        assert resp.status_code == 400
 
     def test_delete_folder_cascades(self, client):
         client.post("/api/folders", json={"id": "f001", "name": "Parent"})
@@ -119,7 +119,7 @@ class TestNotes:
         client.post("/api/notes", json={"id": "n001", "title": "Delete me"})
         client.delete("/api/notes/n001")
         resp = client.get("/api/notes/n001")
-        assert resp.json()["error"] == "not found"
+        assert resp.status_code == 404
 
     def test_note_in_folder_tree(self, client):
         client.post("/api/folders", json={"id": "f001", "name": "Work"})

@@ -58,7 +58,7 @@ function renderHistoryTable(days) {
       const cls = t.status === 'done' ? 'task-cell-done' : t.status === 'partial' ? 'task-cell-partial' : t.status === 'miss' ? 'task-cell-miss' : '';
       const icon = t.status === 'done' ? '✓ ' : t.status === 'partial' ? '◑ ' : t.status === 'miss' ? '✗ ' : '· ';
       const planTag = t.plan ? ` <span style="font-size:10px;opacity:0.7;">${PLAN_META[t.plan].icon}</span>` : '';
-      return `<div class="${cls}" style="font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:260px;">${icon}${t.text}${planTag}</div>`;
+      return `<div class="${cls}" style="font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:260px;">${icon}${escapeHTML(t.text)}${planTag}</div>`;
     }).join('');
     const more = tasks.length > 3 ? `<div style="font-size:11px;color:var(--text-3);">+${tasks.length-3} 项</div>` : '';
     tdTasks.innerHTML = preview + more;

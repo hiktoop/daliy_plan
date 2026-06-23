@@ -5,7 +5,7 @@ import time
 import uuid
 from datetime import date as date_cls
 
-from fastapi import APIRouter, Query
+from fastapi import APIRouter, HTTPException, Query
 from backend.db import get_db
 
 router = APIRouter(prefix="/api", tags=["notes"])
@@ -17,7 +17,7 @@ router = APIRouter(prefix="/api", tags=["notes"])
 def get_diary(date_str: str):
     """Get diary entry for a date."""
     if not _is_valid_date(date_str):
-        return {"error": "invalid date format, use YYYY-MM-DD"}
+        raise HTTPException(status_code=422, detail="Invalid date format, use YYYY-MM-DD")
     with get_db() as db:
         row = db.execute(
             "SELECT * FROM diary WHERE date=?", (date_str,)
@@ -37,7 +37,7 @@ def get_diary(date_str: str):
 def save_diary(date_str: str, body: dict):
     """Save or update diary entry for a date."""
     if not _is_valid_date(date_str):
-        return {"error": "invalid date format, use YYYY-MM-DD"}
+        raise HTTPException(status_code=422, detail="Invalid date format, use YYYY-MM-DD")
     content = body.get("content", "")
     now = time.time()
     with get_db() as db:
@@ -61,7 +61,7 @@ def save_diary(date_str: str, body: dict):
 def delete_diary(date_str: str):
     """Delete diary entry for a date."""
     if not _is_valid_date(date_str):
-        return {"error": "invalid date format"}
+        raise HTTPException(status_code=422, detail="Invalid date format, use YYYY-MM-DD")
     with get_db() as db:
         db.execute("DELETE FROM diary WHERE date=?", (date_str,))
     return {"ok": True}
@@ -149,18 +149,18 @@ def update_folder(folder_id: str, body: dict):
     with get_db() as db:
         existing = db.execute("SELECT id FROM note_folders WHERE id=?", (folder_id,)).fetchone()
         if not existing:
-            return {"error": "not found"}
+            raise HTTPException(status_code=404, detail="Folder not found")
         if name is not None:
             db.execute("UPDATE note_folders SET name=? WHERE id=?", (name.strip(), folder_id))
         if parent_id is not None:
             # prevent circular reference: can't set parent to self or descendant
             if parent_id == folder_id:
-                return {"error": "cannot set parent to itself"}
+                raise HTTPException(status_code=400, detail="Cannot set folder parent to itself")
             if parent_id:
                 # check not a descendant
                 descendant_ids = _get_descendant_ids(db, folder_id)
                 if parent_id in descendant_ids:
-                    return {"error": "cannot move folder into its own descendant"}
+                    raise HTTPException(status_code=400, detail="Cannot move folder into its own descendant")
             db.execute("UPDATE note_folders SET parent_id=? WHERE id=?", (parent_id or None, folder_id))
         if sort_order is not None:
             db.execute("UPDATE note_folders SET sort_order=? WHERE id=?", (sort_order, folder_id))
@@ -288,7 +288,7 @@ def get_note(note_id: str):
             "SELECT * FROM notes WHERE id=?", (note_id,)
         ).fetchone()
     if not row:
-        return {"error": "not found"}
+        raise HTTPException(status_code=404, detail="Note not found")
     return {
         "id": row["id"],
         "folderId": row["folder_id"],
@@ -316,7 +316,7 @@ def update_note(note_id: str, body: dict):
     with get_db() as db:
         existing = db.execute("SELECT id FROM notes WHERE id=?", (note_id,)).fetchone()
         if not existing:
-            return {"error": "not found"}
+            raise HTTPException(status_code=404, detail="Note not found")
         db.execute(
             "UPDATE notes SET title=?, content=?, folder_id=?, tags=?, updated_at=? WHERE id=?",
             (title, content, folder_id, json.dumps(tags, ensure_ascii=False), now, note_id),

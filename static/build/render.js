@@ -693,7 +693,7 @@ function renderHistoryTable(days) {
       const cls = t.status === 'done' ? 'task-cell-done' : t.status === 'partial' ? 'task-cell-partial' : t.status === 'miss' ? 'task-cell-miss' : '';
       const icon = t.status === 'done' ? '✓ ' : t.status === 'partial' ? '◑ ' : t.status === 'miss' ? '✗ ' : '· ';
       const planTag = t.plan ? ` <span style="font-size:10px;opacity:0.7;">${PLAN_META[t.plan].icon}</span>` : '';
-      return `<div class="${cls}" style="font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:260px;">${icon}${t.text}${planTag}</div>`;
+      return `<div class="${cls}" style="font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:260px;">${icon}${escapeHTML(t.text)}${planTag}</div>`;
     }).join('');
     const more = tasks.length > 3 ? `<div style="font-size:11px;color:var(--text-3);">+${tasks.length-3} 项</div>` : '';
     tdTasks.innerHTML = preview + more;
@@ -1243,7 +1243,7 @@ async function pomoRefreshStats() {
       const sec = s.duration % 60;
       const timeStr = d + '分' + (sec > 0 ? sec + '秒' : '');
       const startTime = new Date(s.start_ts * 1000).toLocaleTimeString('zh-CN', {hour:'2-digit',minute:'2-digit'});
-      const taskLabel = s.task_text ? s.task_text : '<span style="color:var(--text-3);">—</span>';
+      const taskLabel = s.task_text ? escapeHTML(s.task_text) : '<span style="color:var(--text-3);">—</span>';
       return `<tr>
         <td style="white-space:nowrap;">${startTime}</td>
         <td style="font-weight:500;color:var(--accent-text);white-space:nowrap;">${timeStr}</td>
@@ -1418,9 +1418,9 @@ async function renderHabits() {
       return '<div class="habit-card" style="border-left: 3px solid ' + h.color + '">' +
         '<div style="display:flex;align-items:center;justify-content:space-between;">' +
         '<div style="display:flex;align-items:center;gap:8px;flex:1;min-width:0;">' +
-        '<span style="font-size:24px;">' + h.icon + '</span>' +
+        '<span style="font-size:24px;">' + escapeHTML(h.icon) + '</span>' +
         '<div style="flex:1;min-width:0;">' +
-        '<div style="font-weight:500;font-size:14px;">' + h.name + '</div>' +
+        '<div style="font-weight:500;font-size:14px;">' + escapeHTML(h.name) + '</div>' +
         '<div style="font-size:11px;color:var(--text-3);">' + (h.frequency === 'daily' ? '每天' : '每周') + ' · 连续 ' + h.streak + ' 天 · 最佳 ' + h.best + ' 天</div>' +
         noteHtml +
         '</div></div>' +

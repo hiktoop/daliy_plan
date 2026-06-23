@@ -58,9 +58,9 @@ async function renderHabits() {
       return '<div class="habit-card" style="border-left: 3px solid ' + h.color + '">' +
         '<div style="display:flex;align-items:center;justify-content:space-between;">' +
         '<div style="display:flex;align-items:center;gap:8px;flex:1;min-width:0;">' +
-        '<span style="font-size:24px;">' + h.icon + '</span>' +
+        '<span style="font-size:24px;">' + escapeHTML(h.icon) + '</span>' +
         '<div style="flex:1;min-width:0;">' +
-        '<div style="font-weight:500;font-size:14px;">' + h.name + '</div>' +
+        '<div style="font-weight:500;font-size:14px;">' + escapeHTML(h.name) + '</div>' +
         '<div style="font-size:11px;color:var(--text-3);">' + (h.frequency === 'daily' ? '每天' : '每周') + ' · 连续 ' + h.streak + ' 天 · 最佳 ' + h.best + ' 天</div>' +
         noteHtml +
         '</div></div>' +

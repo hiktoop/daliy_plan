@@ -49,11 +49,11 @@ class TestFocusStartStop:
 
         # Second stop should return error
         stop_resp = client.post(f"/api/focus/{session_id}/stop")
-        assert stop_resp.json()["error"] == "session already stopped"
+        assert stop_resp.status_code == 409
 
     def test_stop_nonexistent_session(self, client):
         resp = client.post("/api/focus/nonexistent/stop")
-        assert resp.json()["error"] == "session not found"
+        assert resp.status_code == 404
 
 
 class TestGetSessions:

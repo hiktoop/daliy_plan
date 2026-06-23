@@ -1,7 +1,7 @@
 """Focus timer (Pomodoro) routes."""
 
 import time
-from fastapi import APIRouter
+from fastapi import APIRouter, HTTPException
 
 from backend.db import get_db
 from backend.models import FocusStartPayload, FocusStopPayload
@@ -32,9 +32,9 @@ def stop_focus(session_id: str, payload: FocusStopPayload = FocusStopPayload()):
     with get_db() as db:
         row = db.execute("SELECT * FROM focus_sessions WHERE id = ?", (session_id,)).fetchone()
         if not row:
-            return {"error": "session not found"}
+            raise HTTPException(status_code=404, detail="Focus session not found")
         if row["end_ts"] is not None:
-            return {"error": "session already stopped"}
+            raise HTTPException(status_code=409, detail="Session already stopped")
         duration = payload.duration if payload.duration else int(now - row["start_ts"])
         db.execute(
             "UPDATE focus_sessions SET end_ts = ?, duration = ?, note = ? WHERE id = ?",

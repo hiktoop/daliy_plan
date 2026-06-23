@@ -79,7 +79,7 @@ async function pomoRefreshStats() {
       const sec = s.duration % 60;
       const timeStr = d + '分' + (sec > 0 ? sec + '秒' : '');
       const startTime = new Date(s.start_ts * 1000).toLocaleTimeString('zh-CN', {hour:'2-digit',minute:'2-digit'});
-      const taskLabel = s.task_text ? s.task_text : '<span style="color:var(--text-3);">—</span>';
+      const taskLabel = s.task_text ? escapeHTML(s.task_text) : '<span style="color:var(--text-3);">—</span>';
       return `<tr>
         <td style="white-space:nowrap;">${startTime}</td>
         <td style="font-weight:500;color:var(--accent-text);white-space:nowrap;">${timeStr}</td>

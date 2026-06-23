@@ -22,16 +22,10 @@ def _today() -> str:
     return dt_date.today().isoformat()
 
 
-def _calc_streak(db, habit_id: str, today: str) -> tuple[int, int]:
-    """Return (current_streak, best_streak) for a habit."""
-    rows = db.execute(
-        "SELECT date FROM habit_logs WHERE habit_id = ? ORDER BY date DESC",
-        (habit_id,)
-    ).fetchall()
-    if not rows:
+def _streak_from_dates(dates: list, today: str) -> tuple[int, int]:
+    """Return (current_streak, best_streak) from pre-fetched date list."""
+    if not dates:
         return 0, 0
-
-    dates = [r["date"] for r in rows]
 
     # current streak: count consecutive days backwards from today
     current = 0
@@ -42,9 +36,8 @@ def _calc_streak(db, habit_id: str, today: str) -> tuple[int, int]:
             cursor = (dt_date.fromisoformat(cursor) - timedelta(days=1)).isoformat()
         elif d < cursor:
             break
-    # if today is not checked and cursor == today, that's fine — streak counts until last check
 
-    # best streak: longest consecutive run in all dates
+    # best streak: longest consecutive run
     best = 0
     run = 1
     for i in range(1, len(dates)):
@@ -72,21 +65,40 @@ def list_habits():
             "SELECT * FROM habits WHERE status = 'active' ORDER BY created_at"
         ).fetchall()
 
-    result = []
-    for r in rows:
-        h = dict(r)
-        with get_db() as db:
-            cur, best = _calc_streak(db, h["id"], today)
-            log_row = db.execute(
-                "SELECT done_value, note FROM habit_logs WHERE habit_id = ? AND date = ?",
-                (h["id"], today)
-            ).fetchone()
-            checked = log_row is not None
-        h["streak"] = cur
-        h["best"] = best
-        h["checked_today"] = checked
-        h["note_today"] = log_row["note"] if log_row and log_row["note"] else ""
-        result.append(h)
+        if not rows:
+            return {"habits": []}
+
+        # Batch-fetch all today's logs at once
+        habit_ids = [r["id"] for r in rows]
+        placeholders = ",".join("?" for _ in habit_ids)
+        log_rows = db.execute(
+            f"SELECT habit_id, done_value, note FROM habit_logs WHERE habit_id IN ({placeholders}) AND date = ?",
+            habit_ids + [today]
+        ).fetchall()
+        today_logs = {lr["habit_id"]: lr for lr in log_rows}
+
+        # Batch-fetch all log dates for streak calculation
+        all_dates = db.execute(
+            f"SELECT habit_id, date FROM habit_logs WHERE habit_id IN ({placeholders}) ORDER BY date DESC",
+            habit_ids
+        ).fetchall()
+        dates_by_habit = {}
+        for ad in all_dates:
+            dates_by_habit.setdefault(ad["habit_id"], []).append(ad["date"])
+
+        result = []
+        for r in rows:
+            h = dict(r)
+            hid = h["id"]
+            dates = dates_by_habit.get(hid, [])
+            cur, best = _streak_from_dates(dates, today)
+            log_row = today_logs.get(hid)
+            h["streak"] = cur
+            h["best"] = best
+            h["checked_today"] = log_row is not None
+            h["note_today"] = log_row["note"] if log_row and log_row["note"] else ""
+            result.append(h)
+
     return {"habits": result}
 
 
