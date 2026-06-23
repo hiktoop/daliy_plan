@@ -5,6 +5,7 @@ __pycache__/
 
 # Data (user-specific, recreated at runtime)
 data/
+tasks.db
 
 # WorkBuddy
 .workbuddy/

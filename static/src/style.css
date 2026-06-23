@@ -39,15 +39,9 @@
   --accent-light: #eaf3de;
   --accent-text: #3b6d11;
 
-  /* Morning gradient colors */
-  --morning-start: #eff6ff;
-  --morning-end: #ecfdf5;
-  --morning-header: #3b82f6;
-
-  /* Evening gradient colors */
-  --evening-start: #fff7ed;
-  --evening-end: #fffbeb;
-  --evening-header: #f59e0b;
+  /* Section accent borders (replaces gradients) */
+  --morning-accent: #3b82f6;
+  --evening-accent: #f59e0b;
 
   --radius: 12px;
   --radius-sm: 8px;
@@ -98,41 +92,14 @@ body {
   box-shadow: var(--shadow-sm);
 }
 
-/* ─── Gradient Section Cards ─── */
-.card-gradient {
-  border: none;
-  border-radius: 16px;
-  box-shadow: var(--shadow-md);
-  overflow: hidden;
-  padding: 0;
+/* Section accent cards — thin top border instead of gradient */
+.card.morning-accent {
+  border-top: 3px solid var(--morning-accent);
+  border-top-left-radius: 0; border-top-right-radius: 0;
 }
-.card-gradient.morning {
-  background: linear-gradient(135deg, var(--morning-start) 0%, var(--morning-end) 100%);
-  border: 1px solid rgba(59, 130, 246, 0.12);
-}
-.card-gradient.evening {
-  background: linear-gradient(135deg, var(--evening-start) 0%, var(--evening-end) 100%);
-  border: 1px solid rgba(245, 158, 11, 0.12);
-}
-
-.card-gradient-header {
-  padding: 18px 24px 14px;
-  border-bottom: 1px solid rgba(0,0,0,0.05);
-}
-.card-gradient-header .section-icon { font-size: 22px; margin-right: 8px; }
-.card-gradient-header .section-title {
-  font-size: 20px; font-weight: 700; color: var(--text);
-  display: flex; align-items: center; gap: 6px;
-}
-.card-gradient.morning .section-title { color: #1e40af; }
-.card-gradient.evening .section-title { color: #92400e; }
-.card-gradient-header .section-subtitle {
-  font-size: 13px; color: var(--text-3);
-  margin-top: 4px;
-}
-
-.card-gradient-body {
-  padding: 20px 24px;
+.card.evening-accent {
+  border-top: 3px solid var(--evening-accent);
+  border-top-left-radius: 0; border-top-right-radius: 0;
 }
 
 /* ─── Date Bar ─── */
@@ -184,7 +151,6 @@ body {
 }
 .task-card:hover {
   box-shadow: var(--shadow);
-  transform: translateY(-1px);
 }
 .task-card.task-habit-card {
   border-left: 3px solid #7c5cbf;
@@ -303,12 +269,12 @@ body {
 }
 
 /* ─── Type Toggle (edit mode) ─── */
-.type-group { display: flex; gap: 6px; align-items: center; }
+.type-group { display: flex; gap: 4px; align-items: center; }
 .type-btn {
-  padding: 4px 12px; border-radius: 8px; border: 0.5px solid var(--border);
+  padding: 1px 10px; border-radius: 10px; border: 0.5px solid var(--border);
   background: var(--surface); cursor: pointer; font-size: 11px;
   color: var(--text-3); font-family: inherit; transition: all 0.12s;
-  min-width: 44px; min-height: 44px;
+  line-height: 22px; height: 26px; white-space: nowrap; flex-shrink: 0;
 }
 .type-btn:hover { border-color: var(--text-2); color: var(--text-2); }
 .type-btn.active-task { background: #eff6ff; color: #2563eb; border-color: #93c5fd; font-weight: 500; }
@@ -317,6 +283,24 @@ body {
 .eb-compact {
   font-size: 11px; color: var(--text-3);
   margin-left: 4px; white-space: nowrap; flex-shrink: 0;
+}
+
+/* ─── Task Card Top Row (inline layout) ─── */
+.task-card-top {
+  display: flex; align-items: flex-start; gap: 8px; width: 100%;
+  min-height: 28px;
+}
+.task-card-top .task-card-body { flex: 1; min-width: 0; }
+.task-card-controls {
+  display: flex; align-items: center; gap: 4px; flex-shrink: 0;
+  height: 28px;
+}
+
+/* ─── Task Card Bottom Row (plan + star + url) ─── */
+.task-card-bottom {
+  display: flex; align-items: center; gap: 6px;
+  margin-top: 4px; margin-left: 32px; flex-wrap: wrap;
+  min-height: 0;
 }
 
 /* ─── Add Task Row ─── */
@@ -355,8 +339,8 @@ body {
 }
 .btn-save:hover { opacity: 0.9; transform: translateY(-1px); box-shadow: var(--shadow); }
 .btn-save:active { transform: translateY(0); }
-.btn-save-morning { background: var(--morning-header); }
-.btn-save-evening { background: var(--evening-header); }
+.btn-save-morning { background: var(--morning-accent); }
+.btn-save-evening { background: var(--evening-accent); }
 
 /* ─── Note Fields ─── */
 .note-field {
@@ -381,9 +365,10 @@ body {
 .badge-miss  { background: var(--danger-light); color: var(--danger); }
 
 .card-title {
-  font-size: 13px; font-weight: 500; color: var(--text-2);
-  margin-bottom: 14px; display: flex; align-items: center; gap: 6px;
+  font-size: 15px; font-weight: 600; color: var(--text);
+  margin-bottom: 16px; display: flex; align-items: center; gap: 6px;
 }
+.card-subtitle { font-size: 12px; color: var(--text-3); font-weight: 400; }
 
 /* ─── Review Section ─── */
 .review-item {
@@ -506,17 +491,17 @@ body {
 .chart-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
 
 /* ─── Plan Buttons ─── */
-.plan-group { display: flex; align-items: center; gap: 4px; margin-top: 4px; flex-wrap: wrap; }
+.plan-group { display: flex; align-items: center; gap: 3px; flex-wrap: wrap; }
 .plan-btn {
-  padding: 2px 7px; border-radius: 10px; border: 0.5px solid var(--border-md);
-  background: var(--surface); cursor: pointer; font-size: 11px;
+  padding: 1px 7px; border-radius: 8px; border: 0.5px solid var(--border-md);
+  background: var(--surface); cursor: pointer; font-size: 10px; line-height: 20px;
   color: var(--text-3); font-family: inherit; transition: all 0.12s; white-space: nowrap;
 }
 .plan-btn:hover { border-color: var(--text-2); color: var(--text-2); }
 .plan-btn.active-long  { background: #d4e6fa; color: #0d4f8a; border-color: #8bb8e0; }
 .plan-btn.active-week  { background: #fce4d6; color: #a64e0a; border-color: #f0b080; }
 .plan-btn.active-month { background: #e0d4f5; color: #5c2d91; border-color: #b595d8; }
-.plan-streak { font-size: 11px; color: var(--text-3); white-space: nowrap; margin-left: 2px; }
+.plan-streak { font-size: 10px; color: var(--text-3); white-space: nowrap; }
 .plan-streak.has-streak { color: var(--accent-text); font-weight: 500; }
 .plan-streak.is-zero   { color: var(--danger); }
 
@@ -790,9 +775,6 @@ body {
   .header { padding: 0 14px; }
   .main { padding: 16px 12px 50px; }
   .card { padding: 16px; }
-  .card-gradient-header { padding: 14px 16px 10px; }
-  .card-gradient-body { padding: 14px 16px; }
-  .card-gradient-header .section-title { font-size: 17px; }
   .date-big { font-size: 20px; }
   .task-card { padding: 12px; }
   .task-card-input { font-size: 14px; }

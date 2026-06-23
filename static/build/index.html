@@ -53,12 +53,9 @@
   </div>
 
   <!-- ═══ 早间计划 ═══ -->
-  <div class="card card-gradient morning" id="card-morning">
-    <div class="card-gradient-header">
-      <div class="section-title">☀️ 早间计划</div>
-      <div class="section-subtitle">写下今天要做的事，最多 10 项</div>
-    </div>
-    <div class="card-gradient-body">
+  <div class="card morning-accent" id="card-morning">
+    <div class="card-title">☀️ 早间计划 <span class="card-subtitle">写下今天要做的事，最多 10 项</span></div>
+
       <!-- 今日复习 -->
       <div id="review-section" style="display:none;margin-bottom:16px;">
         <div class="section-header">
@@ -93,16 +90,12 @@
       <button class="btn-save btn-save-morning" id="btn-save-morning" onclick="saveMorning()">
         ✓ 保存早间计划
       </button>
-    </div>
   </div>
 
   <!-- ═══ 晚间复盘 ═══ -->
-  <div class="card card-gradient evening" id="card-evening">
-    <div class="card-gradient-header">
-      <div class="section-title">🌙 晚间复盘</div>
-      <div class="section-subtitle">回顾今天的完成情况</div>
-    </div>
-    <div class="card-gradient-body">
+  <div class="card evening-accent" id="card-evening">
+    <div class="card-title">🌙 晚间复盘 <span class="card-subtitle">回顾今天的完成情况</span></div>
+
       <div id="evening-no-plan" style="display:none;">
         <div class="empty-state">
           <div class="empty-icon">🌙</div>
@@ -125,7 +118,6 @@
         <div class="progress-row" id="summary-metrics"></div>
         <div id="summary-task-chips" style="margin-top:8px;"></div>
       </div>
-    </div>
   </div>
 </div>
 
