@@ -55,6 +55,8 @@ renderJS += '   DO NOT EDIT — edit pages/{page}/render.js instead\n';
 renderJS += '═══════════════════════════════════════════════════════ */\n\n';
 renderJS += '/* ─── Shared Utils ─── */\n\n';
 renderJS += read(path.join(SRC, 'shared', 'utils.js')) + '\n';
+renderJS += '/* ─── Shared Widgets (W.*) ─── */\n\n';
+renderJS += read(path.join(SRC, 'shared', 'render-widgets.js')) + '\n';
 renderJS += '/* ─── Public API ─── */\n\n';
 renderJS += read(path.join(SRC, 'shared', 'render-api.js')) + '\n';
 
