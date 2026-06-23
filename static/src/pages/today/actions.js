@@ -1,7 +1,7 @@
 /* actions.js — Today page interactions */
 
 function syncInputsToDay(d) {
-  const inputs = document.querySelectorAll('#morning-task-list .task-input');
+  const inputs = document.querySelectorAll('#morning-task-cards .task-card-input');
   inputs.forEach((input, i) => { if (d.morningTasks && d.morningTasks[i]) d.morningTasks[i].text = input.value; });
 }
 
@@ -85,7 +85,7 @@ async function deleteTask(id) {
 async function saveMorning() {
   let d = await API.getDay(currentDate);
   if (d.savedMorning) { showToast('早间计划已保存，不可重复保存'); return; }
-  const inputs = document.querySelectorAll('#morning-task-list .task-input');
+  const inputs = document.querySelectorAll('#morning-task-cards .task-card-input');
   inputs.forEach((input, i) => { if (d.morningTasks[i]) d.morningTasks[i].text = input.value.trim(); });
   const filled = (d.morningTasks||[]).filter(t => t.text || t.plan);
   if (filled.filter(t => t.text).length === 0) { showToast('请至少填写一项任务'); return; }
@@ -121,19 +121,19 @@ async function saveEvening() {
   if (d.savedEvening) { showToast('复盘已保存，不可重复保存'); return; }
   if (!d || !d.savedMorning) { showToast('请先保存早间计划'); return; }
 
-  const lis = document.querySelectorAll('#evening-task-list .task-item');
-  lis.forEach(li => {
-    const id = li.dataset.id;
+  const cards = document.querySelectorAll('#evening-task-cards .evening-task-card');
+  cards.forEach(card => {
+    const id = card.dataset.id;
     const t = (d.morningTasks||[]).find(x => x.id === id);
     if (!t) return;
-    const sel = li.querySelector('.status-btn.selected-done, .status-btn.selected-partial, .status-btn.selected-miss');
+    const sel = card.querySelector('.status-btn.selected-done, .status-btn.selected-partial, .status-btn.selected-miss');
     if (sel) {
       if (sel.classList.contains('selected-done')) t.status = 'done';
       else if (sel.classList.contains('selected-partial')) t.status = 'partial';
       else if (sel.classList.contains('selected-miss')) t.status = 'miss';
     }
     // Collect per-task evening note
-    const noteInput = li.querySelector('.evening-task-note');
+    const noteInput = card.querySelector('.evening-task-note');
     if (noteInput) {
       t.eveningNote = noteInput.value;
     }

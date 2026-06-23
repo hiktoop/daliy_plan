@@ -102,6 +102,7 @@ window.DailyTasksAPI = {
   },
   async getRecurringTasks() { return (await API.getPlans()).plans; }
 };
+
 async function renderToday() {
   document.getElementById('today-date-label').textContent = dateLabel(currentDate);
   document.getElementById('today-weekday').textContent = weekdayLabel(currentDate);
@@ -109,16 +110,13 @@ async function renderToday() {
   const isToday = currentDate === todayStr();
 
   // Nav button state
-  let hasPrev = false, hasNext = false;
+  let hasPrev = false;
   try {
     const daysList = await API.listDays();
     const savedDates = daysList.map(d => d.date);
     hasPrev = savedDates.some(d => d < currentDate);
-    hasNext = savedDates.some(d => d > currentDate);
   } catch(e) {}
   document.getElementById('btn-prev-day').disabled = !hasPrev;
-  // Next is enabled if not today (allows navigating back to today)
-  // or if there are saved dates ahead
   document.getElementById('btn-next-day').disabled = isToday;
   document.getElementById('btn-today').disabled = isToday;
 
@@ -129,8 +127,8 @@ async function renderToday() {
   // Past date with no saved data → empty state
   if (!isToday && isNew) {
     document.getElementById('morning-empty-msg').style.display = '';
-    document.getElementById('morning-task-list').style.display = 'none';
-    document.getElementById('add-task-btn').style.display = 'none';
+    document.getElementById('morning-task-cards').style.display = 'none';
+    document.getElementById('add-task-area').style.display = 'none';
     document.getElementById('morning-note-wrap').style.display = 'none';
     document.getElementById('btn-save-morning').style.display = 'none';
     document.getElementById('morning-hint').textContent = '';
@@ -138,42 +136,69 @@ async function renderToday() {
     return;
   }
   document.getElementById('morning-empty-msg').style.display = 'none';
-  document.getElementById('morning-task-list').style.display = '';
+  document.getElementById('morning-task-cards').style.display = '';
   document.getElementById('morning-note-wrap').style.display = '';
   document.getElementById('card-evening').style.display = '';
 
   // Auto-save for new today
   if (isNew && isToday) await API.saveDay(currentDate, data);
 
-  // Sort: reviews first, then habits, then tasks
+  // Split tasks
   const allTasks = data.morningTasks || [];
-
-  // Separate review tasks and regular tasks
   const reviewTasks = allTasks.filter(t => t.itemType === 'review');
   const regularTasks = allTasks.filter(t => t.itemType !== 'review');
 
-  // Show due reviews in the review section
+  // Show due reviews
   renderReviewSection(reviewTasks);
 
-  // Update counters etc with regular tasks only
+  // Regular tasks sorted: habits first, then knowledge, then plain
   regularTasks.sort((a, b) => {
     const aH = (a.kind||'task') === 'habit' ? 0 : 1;
     const bH = (b.kind||'task') === 'habit' ? 0 : 1;
     return aH - bH;
   });
-  // Replace morningTasks with regular tasks only (reviews handled separately)
   data.morningTasks = regularTasks;
+
+  // Layout: knowledge section + divider + plain section
+  const knowledgeTasks = regularTasks.filter(t => t.itemType === 'knowledge');
+  const plainTasks = regularTasks.filter(t => t.itemType !== 'knowledge');
 
   // Morning
   const savedMorning = !!data.savedMorning;
-  const ul = document.getElementById('morning-task-list');
-  ul.innerHTML = '';
-  await renderMorningTasks(ul, data, savedMorning);
+  const container = document.getElementById('morning-task-cards');
+  container.innerHTML = '';
+
+  // Knowledge section header
+  if (knowledgeTasks.length > 0) {
+    const kh = document.createElement('div');
+    kh.className = 'section-header';
+    kh.innerHTML = '<span class="section-header-icon">📚</span><span class="section-header-label">知识</span>';
+    container.appendChild(kh);
+    knowledgeTasks.forEach((task, i) => renderMorningCard(container, task, i, data, savedMorning));
+  }
+
+  // Divider
+  if (knowledgeTasks.length > 0 && plainTasks.length > 0) {
+    const divider = document.createElement('div');
+    divider.className = 'section-divider';
+    container.appendChild(divider);
+  }
+
+  // Plain tasks section header
+  if (plainTasks.length > 0) {
+    const ph = document.createElement('div');
+    ph.className = 'section-header';
+    ph.innerHTML = '<span class="section-header-icon">📋</span><span class="section-header-label">事项</span>';
+    container.appendChild(ph);
+    const kCount = knowledgeTasks.length;
+    plainTasks.forEach((task, i) => renderMorningCard(container, task, kCount + i, data, savedMorning));
+  }
+
   document.getElementById('btn-save-morning').style.display = savedMorning ? 'none' : '';
-  document.getElementById('add-task-area').style.display = savedMorning ? 'none' : ((data.morningTasks||[]).length >= 10 ? 'none' : '');
+  document.getElementById('add-task-area').style.display = savedMorning ? 'none' : ((regularTasks.length >= 10) ? 'none' : '');
   document.getElementById('morning-note').readOnly = savedMorning;
   document.getElementById('morning-note').value = data.morningNote || '';
-  document.getElementById('morning-hint').textContent = savedMorning ? '已保存 ✓' : `${(data.morningTasks||[]).length}/10 项`;
+  document.getElementById('morning-hint').textContent = savedMorning ? '已保存 ✓' : `${regularTasks.length}/10`;
 
   // Evening
   if (!data.savedMorning) {
@@ -193,80 +218,62 @@ async function renderToday() {
     }
   }
 }
-async function renderMorningTasks(ul, data, savedMorning) {
-  let streaks = {};
-  try {
-    const plansRes = await API.getPlans();
-    plansRes.plans.forEach(p => { streaks[p.id] = p.streak || {}; });
-  } catch(e) {}
-  // Split into knowledge / regular for grouped display
-  var all = data.morningTasks || [];
-  var knowledgeTasks = all.filter(function(t) { return t.itemType === 'knowledge'; });
-  var regularTasks = all.filter(function(t) { return t.itemType !== 'knowledge'; });
 
-  function addSection(label, tasks) {
-    if (tasks.length === 0) return;
-    var sep = document.createElement('div');
-    sep.className = 'section-label';
-    sep.textContent = label;
-    ul.appendChild(sep);
-    tasks.forEach(function(task, i) { renderMorningItem(ul, task, i, data, streaks, savedMorning); });
-  }
-
-  addSection('📚 知识', knowledgeTasks);
-  // Divider between 知识 and 事项
-  if (knowledgeTasks.length > 0 && regularTasks.length > 0) {
-    var divider = document.createElement('div');
-    divider.className = 'section-divider';
-    ul.appendChild(divider);
-  }
-  addSection('📋 事项', regularTasks);
-}
-
-function renderMorningItem(ul, task, index, data, streaks, savedMorning) {
-  const li = document.createElement('li');
-  li.className = 'task-item' + ((task.kind||'task') === 'habit' ? ' task-habit' : '');
-  li.dataset.id = task.id;
-
+/* ─── Morning Task Card ─── */
+function renderMorningCard(container, task, index, data, savedMorning) {
   const isToday = currentDate === todayStr();
   const readOnly = !isToday || savedMorning;
+  const isKnowledge = task.itemType === 'knowledge';
+  const isHabit = (task.kind||'task') === 'habit';
 
-  const num = document.createElement('div');
-  num.className = 'task-num';
+  const card = document.createElement('div');
+  card.className = 'task-card';
+  if (isHabit) card.classList.add('task-habit-card');
+  if (isKnowledge) card.classList.add('task-knowledge');
+  card.dataset.id = task.id;
+
+  // Index badge
+  const idx = document.createElement('div');
+  idx.className = 'task-card-index';
+  if (isKnowledge) idx.classList.add('knowledge-idx');
   if (task.plan) {
     const colors = {
       long:  'background:#d4e6fa;color:#0d4f8a;border:0.5px solid #8bb8e0;',
       week:  'background:#fce4d6;color:#a64e0a;border:0.5px solid #f0b080;',
       month: 'background:#e0d4f5;color:#5c2d91;border:0.5px solid #b595d8;'
     };
-    num.style.cssText = `min-width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:500;flex-shrink:0;margin-top:2px;${colors[task.plan]||colors.long}`;
-    num.textContent = PLAN_META[task.plan].icon;
-    num.title = PLAN_META[task.plan].label;
+    idx.style.cssText = `min-width:28px;height:28px;${colors[task.plan]||colors.long}`;
+    idx.textContent = PLAN_META[task.plan].icon;
+    idx.title = PLAN_META[task.plan].label;
+  } else if (isHabit) {
+    idx.textContent = '🌀';
+    idx.title = '习惯';
+    idx.style.cssText = 'min-width:28px;height:28px;display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0;';
   } else {
-    num.textContent = index + 1;
+    idx.textContent = index + 1;
   }
 
-  const content = document.createElement('div');
-  content.className = 'task-content';
+  // Body
+  const body = document.createElement('div');
+  body.className = 'task-card-body';
 
-  const inputRow = document.createElement('div');
-  inputRow.style.cssText = 'display:flex;align-items:flex-start;gap:6px;';
-  const input = document.createElement('textarea');
-  input.className = 'task-input';
-  input.value = task.text || '';
-  input.placeholder = `事项 ${index+1}`;
-  input.rows = 1;
+  // Text input
+  const textarea = document.createElement('textarea');
+  textarea.className = 'task-card-input';
+  textarea.value = task.text || '';
+  textarea.placeholder = isKnowledge ? '输入知识内容…' : `事项 ${index + 1}`;
+  textarea.rows = 1;
   if (readOnly) {
-    input.readOnly = true;
-    input.style.color = 'var(--text-2)';
-    input.style.cursor = 'default';
-    input.title = savedMorning ? '早间计划已保存，不可修改' : '历史记录不可修改';
+    textarea.readOnly = true;
+    textarea.style.color = 'var(--text-2)';
+    textarea.style.cursor = 'default';
+    textarea.title = savedMorning ? '早间计划已保存，不可修改' : '历史记录不可修改';
   }
-  input.addEventListener('input', function() {
+  textarea.addEventListener('input', function() {
     this.style.height = 'auto'; this.style.height = this.scrollHeight + 'px';
   });
   if (!readOnly) {
-    input.addEventListener('keydown', async function(e) {
+    textarea.addEventListener('keydown', async function(e) {
       if (e.key === 'Enter' && !e.shiftKey) {
         e.preventDefault();
         const d = await API.getDay(currentDate);
@@ -274,12 +281,12 @@ function renderMorningItem(ul, task, index, data, streaks, savedMorning) {
       }
     });
   }
-  inputRow.appendChild(input);
+  body.appendChild(textarea);
 
-  // Knowledge task: source URL link/button (inline with textarea)
-  if (task.itemType === 'knowledge') {
-    const linkWrap = document.createElement('span');
-    linkWrap.style.cssText = 'flex-shrink:0;margin-top:4px;';
+  // Source URL for knowledge tasks
+  if (isKnowledge) {
+    const urlRow = document.createElement('div');
+    urlRow.style.cssText = 'display:flex;align-items:center;gap:6px;margin-top:6px;';
     const hasUrl = task.sourceUrl && task.sourceUrl.trim();
     if (hasUrl) {
       const linkBtn = document.createElement('a');
@@ -290,7 +297,11 @@ function renderMorningItem(ul, task, index, data, streaks, savedMorning) {
       linkBtn.title = '打开学习资料：' + task.sourceUrl;
       linkBtn.innerHTML = '🔗';
       linkBtn.onclick = function(e) { e.stopPropagation(); };
-      linkWrap.appendChild(linkBtn);
+      urlRow.appendChild(linkBtn);
+      const urlText = document.createElement('span');
+      urlText.style.cssText = 'font-size:11px;color:var(--text-3);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:200px;';
+      urlText.textContent = task.sourceUrl;
+      urlRow.appendChild(urlText);
     } else if (!readOnly) {
       const addUrlBtn = document.createElement('button');
       addUrlBtn.className = 'task-url-btn';
@@ -298,75 +309,103 @@ function renderMorningItem(ul, task, index, data, streaks, savedMorning) {
       addUrlBtn.innerHTML = '🔗';
       addUrlBtn.onclick = function(e) {
         e.stopPropagation();
-        showUrlInput(linkWrap, task.id);
+        showUrlInput(urlRow, task.id);
       };
-      linkWrap.appendChild(addUrlBtn);
+      urlRow.appendChild(addUrlBtn);
     }
-    inputRow.appendChild(linkWrap);
+    body.appendChild(urlRow);
   }
 
-  content.appendChild(inputRow);
+  // Meta row: type tag + priority star + toggle buttons
+  const meta = document.createElement('div');
+  meta.className = 'task-meta';
 
-  // Type toggle (知识/事项) — replaces old plan buttons
-  const typeRow = document.createElement('div');
-  typeRow.className = 'type-group';
   if (readOnly) {
-    // Read-only: show type tag + compact schedule
-    if (task.itemType === 'knowledge') {
-      var kTag = document.createElement('span');
+    // Read-only: show type tags
+    if (isKnowledge) {
+      const kTag = document.createElement('span');
       kTag.className = 'type-tag knowledge-tag';
-      kTag.textContent = '📚 知识';
-      typeRow.appendChild(kTag);
-      // Compact Ebbinghaus schedule inline
-      var sched = document.createElement('span');
+      kTag.innerHTML = '📚 知识';
+      meta.appendChild(kTag);
+      const sched = document.createElement('span');
       sched.className = 'eb-compact';
-      sched.textContent = '（SM-2 动态复习）';
+      sched.textContent = 'SM-2 动态复习';
       sched.title = '艾宾浩斯复习时间表：间隔根据记忆效果动态调整';
-      typeRow.appendChild(sched);
+      meta.appendChild(sched);
     } else {
-      var tTag = document.createElement('span');
+      const tTag = document.createElement('span');
       tTag.className = 'type-tag task-tag';
-      tTag.textContent = '事项';
-      typeRow.appendChild(tTag);
+      tTag.innerHTML = '📄 事项';
+      meta.appendChild(tTag);
     }
   } else {
     // Edit mode: toggle buttons
-    var isKnowledge = task.itemType === 'knowledge';
-    var taskBtn = document.createElement('button');
+    const taskBtn = document.createElement('button');
     taskBtn.className = 'type-btn' + (!isKnowledge ? ' active-task' : '');
-    taskBtn.textContent = '事项';
+    taskBtn.textContent = '📄 事项';
     taskBtn.onclick = function() { toggleTaskType(task.id, 'task'); };
-    typeRow.appendChild(taskBtn);
+    meta.appendChild(taskBtn);
 
-    var kBtn = document.createElement('button');
+    const kBtn = document.createElement('button');
     kBtn.className = 'type-btn' + (isKnowledge ? ' active-knowledge' : '');
     kBtn.textContent = '📚 知识';
     kBtn.onclick = function() { toggleTaskType(task.id, 'knowledge'); };
-    typeRow.appendChild(kBtn);
+    meta.appendChild(kBtn);
+
     if (isKnowledge) {
-      var sched = document.createElement('span');
+      const sched = document.createElement('span');
       sched.className = 'eb-compact';
       sched.textContent = '（1/2/4/7/15/30天）';
       sched.title = '艾宾浩斯复习时间表';
-      typeRow.appendChild(sched);
+      meta.appendChild(sched);
     }
   }
-  content.appendChild(typeRow);
 
-  const del = document.createElement('button');
-  del.style.cssText = 'background:none;border:none;cursor:pointer;color:var(--text-3);font-size:13px;padding:0 4px;margin-top:3px;flex-shrink:0;';
-  del.innerHTML = '&#215;'; del.title = '删除';
-  del.onclick = () => deleteTask(task.id);
-  if (readOnly) del.style.visibility = 'hidden';
+  // Priority star
+  const star = document.createElement('button');
+  star.className = 'priority-star' + (task.starred ? ' active' : '');
+  star.innerHTML = task.starred ? '⭐' : '☆';
+  star.title = task.starred ? '已标记为重要' : '标记为重要';
+  if (readOnly) star.classList.add('readonly');
+  star.onclick = async function(e) {
+    e.stopPropagation();
+    if (readOnly) return;
+    const d = await API.getDay(currentDate);
+    const t = (d.morningTasks||[]).find(x => x.id === task.id);
+    if (!t) return;
+    t.starred = !t.starred;
+    await API.saveDay(currentDate, d);
+    await renderToday();
+  };
+  meta.appendChild(star);
 
-  li.appendChild(num); li.appendChild(content); li.appendChild(del);
-  ul.appendChild(li);
-  setTimeout(() => { input.style.height = 'auto'; input.style.height = input.scrollHeight + 'px'; }, 0);
+  body.appendChild(meta);
+  card.appendChild(idx);
+  card.appendChild(body);
+
+  // Delete button
+  if (!readOnly) {
+    const del = document.createElement('button');
+    del.className = 'task-delete-btn';
+    del.innerHTML = '×';
+    del.title = '删除';
+    del.onclick = function() { deleteTask(task.id); };
+    card.appendChild(del);
+  }
+
+  container.appendChild(card);
+
+  // Auto-resize textarea
+  setTimeout(() => {
+    textarea.style.height = 'auto';
+    textarea.style.height = textarea.scrollHeight + 'px';
+  }, 0);
 }
 
+/* ─── Evening Form ─── */
 function renderEveningForm(data) {
-  const ul = document.getElementById('evening-task-list');
-  ul.innerHTML = '';
+  const container = document.getElementById('evening-task-cards');
+  container.innerHTML = '';
   const realTasks = (data.morningTasks||[]).filter(t => (t.text||'').trim());
   const habits = realTasks.filter(t => (t.kind||'task') === 'habit');
   const tasks = realTasks.filter(t => (t.kind||'task') !== 'habit');
@@ -374,30 +413,44 @@ function renderEveningForm(data) {
   const plainTasks = tasks.filter(t => t.itemType !== 'knowledge');
 
   function renderOne(task, idx) {
-    const li = document.createElement('li');
-    li.className = 'task-item' + ((task.kind||'task') === 'habit' ? ' task-habit' : '');
-    li.dataset.id = task.id;
-    const num = document.createElement('div');
-    num.className = 'task-num';
-    if ((task.kind||'task') === 'habit') {
-      num.textContent = '🌀';
-      num.title = '习惯';
-      num.style.cssText = 'min-width:22px;height:22px;display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0;margin-top:2px;';
-    } else {
-      num.textContent = idx + 1;
+    const isKnowledge = task.itemType === 'knowledge';
+    const isHabit = (task.kind||'task') === 'habit';
+
+    const card = document.createElement('div');
+    card.className = 'evening-task-card';
+    if (isHabit) card.classList.add('task-habit-card');
+    if (isKnowledge) card.classList.add('task-knowledge');
+    card.dataset.id = task.id;
+
+    // Text + labels
+    const textEl = document.createElement('div');
+    textEl.className = 'evening-task-text';
+    textEl.textContent = task.text;
+
+    if (isHabit) {
+      const hTag = document.createElement('span');
+      hTag.className = 'type-tag';
+      hTag.style.cssText = 'background:#f3e8ff;color:#7c3aed;border-color:#c4b5fd;';
+      hTag.textContent = '🌀 习惯';
+      textEl.appendChild(hTag);
+    } else if (isKnowledge) {
+      const kTag = document.createElement('span');
+      kTag.className = 'type-tag knowledge-tag';
+      kTag.innerHTML = '📚 知识';
+      textEl.appendChild(kTag);
     }
-    const content = document.createElement('div');
-    content.className = 'task-content';
-    const label = document.createElement('div');
-    label.style.cssText = 'font-size:14px;color:var(--text);margin-bottom:4px;display:flex;align-items:center;gap:4px;flex-wrap:wrap;';
-    label.textContent = task.text;
-    if (task.itemType === 'knowledge') {
-      const kbTag = document.createElement('span');
-      kbTag.className = 'type-tag knowledge-tag';
-      kbTag.textContent = '📚 知识';
-      label.appendChild(kbTag);
+
+    if (task.starred) {
+      const starEl = document.createElement('span');
+      starEl.style.cssText = 'font-size:13px;';
+      starEl.textContent = '⭐';
+      starEl.title = '重要任务';
+      textEl.appendChild(starEl);
     }
-    content.appendChild(label);
+
+    card.appendChild(textEl);
+
+    // Status buttons
     const statusGroup = document.createElement('div');
     statusGroup.className = 'status-group';
     [
@@ -418,11 +471,9 @@ function renderEveningForm(data) {
       };
       statusGroup.appendChild(btn);
     });
-    content.appendChild(statusGroup);
+    card.appendChild(statusGroup);
 
     // Per-task evening note
-    const noteWrap = document.createElement('div');
-    noteWrap.style.cssText = 'margin-top:8px;';
     const noteInput = document.createElement('textarea');
     noteInput.className = 'evening-task-note';
     noteInput.placeholder = '备注（可选）…';
@@ -431,42 +482,43 @@ function renderEveningForm(data) {
     noteInput.addEventListener('input', function() {
       this.style.height = 'auto'; this.style.height = this.scrollHeight + 'px';
     });
-    noteWrap.appendChild(noteInput);
-    content.appendChild(noteWrap);
+    card.appendChild(noteInput);
 
-    li.appendChild(num); li.appendChild(content);
-    ul.appendChild(li);
+    container.appendChild(card);
   }
 
+  let idx = 0;
   if (habits.length > 0) {
-    const sep = document.createElement('div');
-    sep.className = 'section-label';
-    sep.textContent = '🌀 习惯';
-    ul.appendChild(sep);
-    habits.forEach(t => renderOne(t, habits.indexOf(t)));
+    const hh = document.createElement('div');
+    hh.className = 'section-header';
+    hh.innerHTML = '<span class="section-header-icon">🌀</span><span class="section-header-label">习惯</span>';
+    container.appendChild(hh);
+    habits.forEach(t => renderOne(t, idx++));
   }
   if (knowledgeTasks.length > 0) {
-    const sep = document.createElement('div');
-    sep.className = 'section-label';
-    sep.textContent = '📚 知识';
-    ul.appendChild(sep);
-    knowledgeTasks.forEach(function(t, i) { renderOne(t, i); });
+    const kh = document.createElement('div');
+    kh.className = 'section-header';
+    kh.innerHTML = '<span class="section-header-icon">📚</span><span class="section-header-label">知识</span>';
+    container.appendChild(kh);
+    knowledgeTasks.forEach(t => renderOne(t, idx++));
   }
   if (knowledgeTasks.length > 0 && plainTasks.length > 0) {
-    var divider = document.createElement('div');
+    const divider = document.createElement('div');
     divider.className = 'section-divider';
-    ul.appendChild(divider);
+    container.appendChild(divider);
   }
   if (plainTasks.length > 0) {
-    const sep = document.createElement('div');
-    sep.className = 'section-label';
-    sep.textContent = '📋 事项';
-    ul.appendChild(sep);
-    plainTasks.forEach(function(t, i) { renderOne(t, i); });
+    const ph = document.createElement('div');
+    ph.className = 'section-header';
+    ph.innerHTML = '<span class="section-header-icon">📋</span><span class="section-header-label">事项</span>';
+    container.appendChild(ph);
+    plainTasks.forEach(t => renderOne(t, idx++));
   }
+
   document.getElementById('evening-note').value = data.eveningNote || '';
 }
 
+/* ─── Evening Summary ─── */
 function renderEveningSummary(data) {
   const tasks = (data.morningTasks||[]).filter(t => (t.text||'').trim());
   const habits = tasks.filter(t => (t.kind||'task') === 'habit');
@@ -500,20 +552,23 @@ function renderEveningSummary(data) {
 
   function renderChipSection(label, taskList) {
     if (taskList.length === 0) return;
-    var lbl = document.createElement('div');
-    lbl.style.cssText = 'font-size:11px;color:var(--text-3);margin:8px 0 4px;';
+    const lbl = document.createElement('div');
+    lbl.style.cssText = 'font-size:12px;font-weight:500;color:var(--text-2);margin:12px 0 6px;';
     lbl.textContent = label;
     chipsEl.appendChild(lbl);
-    var row = document.createElement('div');
+    const row = document.createElement('div');
     row.className = 'chip-row';
     taskList.forEach(function(t) {
-      var chip = document.createElement('span');
+      const chip = document.createElement('span');
       chip.className = 'chip chip-' + (t.status || 'none');
-      chip.textContent = (t.text||'').length > 16 ? t.text.slice(0,15)+'…' : t.text;
-      chip.title = t.text; row.appendChild(chip);
+      const text = (t.text||'').length > 20 ? t.text.slice(0,19)+'…' : t.text;
+      chip.textContent = text;
+      chip.title = t.text;
+      if (t.starred) chip.textContent = '⭐ ' + chip.textContent;
+      row.appendChild(chip);
       if (t.eveningNote && t.eveningNote.trim()) {
-        var ns = document.createElement('span');
-        ns.style.cssText = 'font-size:10px;color:var(--text-3);margin-left:2px;';
+        const ns = document.createElement('span');
+        ns.style.cssText = 'font-size:11px;color:var(--text-3);margin-left:2px;';
         ns.textContent = '💬';
         ns.title = t.eveningNote;
         row.appendChild(ns);
@@ -524,9 +579,8 @@ function renderEveningSummary(data) {
 
   renderChipSection('🌀 习惯', habits);
   renderChipSection('📚 知识', knowledgeTasks);
-  // Divider between 知识 and 事项 in summary
   if (knowledgeTasks.length > 0 && regularTasks.length > 0) {
-    var sumDivider = document.createElement('div');
+    const sumDivider = document.createElement('div');
     sumDivider.className = 'section-divider';
     chipsEl.appendChild(sumDivider);
   }
@@ -534,17 +588,20 @@ function renderEveningSummary(data) {
 
   if (data.eveningNote) {
     const note = document.createElement('div');
-    note.style.cssText = 'margin-top:10px;font-size:13px;color:var(--text-2);border-left:2px solid var(--border-md);padding-left:10px;';
-    note.textContent = data.eveningNote; chipsEl.appendChild(note);
+    note.style.cssText = 'margin-top:12px;font-size:13px;color:var(--text-2);border-left:3px solid var(--warning);padding:8px 12px;background:rgba(245,158,11,0.04);border-radius:0 8px 8px 0;';
+    note.textContent = data.eveningNote;
+    chipsEl.appendChild(note);
   }
 }
 
+/* ─── Review Section ─── */
 function updateAddBtn(count) {
   const area = document.getElementById('add-task-area');
   if (area) area.style.display = count >= 10 ? 'none' : '';
   const hint = document.getElementById('morning-hint');
   if (hint) hint.textContent = count >= 10 ? '最多 10 项' : `${count}/10 项`;
 }
+
 function renderReviewSection(reviewTasks) {
   const section = document.getElementById('review-section');
   const list = document.getElementById('review-list');
@@ -554,16 +611,15 @@ function renderReviewSection(reviewTasks) {
   }
   section.style.display = '';
   list.innerHTML = reviewTasks.map(function(r) {
-    var round = (r._reviewRound || 0) + 1;
-    var roundLabel = '第' + round + '次复习';
-    var urlLink = '';
+    const round = (r._reviewRound || 0) + 1;
+    const roundLabel = '第' + round + '次复习';
+    let urlLink = '';
     if (r.sourceUrl && r.sourceUrl.trim()) {
       urlLink = '<a href="' + escapeHTML(r.sourceUrl) + '" target="_blank" rel="noopener" ' +
         'class="review-url-link" onclick="event.stopPropagation()" ' +
         'title="打开学习资料">🔗 原文</a>';
     }
-    // Show evening note if exists
-    var noteHtml = '';
+    let noteHtml = '';
     if (r.eveningNote && r.eveningNote.trim()) {
       noteHtml = '<div class="review-note">💬 ' + escapeHTML(r.eveningNote) + '</div>';
     }
