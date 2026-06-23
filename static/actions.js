@@ -214,22 +214,19 @@ async function pomoStart() {
     if (!pomoState.paused) {
       pomoState.elapsed = Math.floor((Date.now()/1000) - pomoState.startTs);
 
-      // Countdown: auto-stop when target reached
+      // Countdown: freeze when target reached, wait for manual completion
       if (isCountdown && pomoState.elapsed >= pomoState.targetSec) {
         pomoState.elapsed = pomoState.targetSec;
         pomoUpdateDisplay();
         clearInterval(pomoState.timerInterval);
-        pomoState.running = false;
+        pomoState.finished = true;
 
-        // 保存记录到后端（修复：之前 sessionId 被提前清空导致记录时长为 0）
-        await pomoAutoSave();
+        // 保持按钮不变（暂停 + 完成），等待用户手动完成
+        pomoSetButtons(true, false);
+        showToast('⏱ 倒计时结束！请点击完成按钮 ✓');
 
-        pomoState.sessionId = null;
-        pomoState.startTs = null;
-        pomoSetButtons(false, false);
-        showToast('⏱ 倒计时结束！专注完成 ✓');
-        pomoNotify();
-        pomoRefreshStats();
+        // 开始循环播放提示音，直到用户点击"完成"
+        pomoStartBeep();
         return;
       }
 
@@ -245,7 +242,7 @@ async function pomoStart() {
 }
 
 async function pomoPause() {
-  if (!pomoState.running) return;
+  if (!pomoState.running || pomoState.finished) return;
   pomoState.paused = !pomoState.paused;
   pomoSetButtons(true, pomoState.paused);
 }
@@ -253,21 +250,34 @@ async function pomoPause() {
 async function pomoStop() {
   if (!pomoState.sessionId) return;
 
+  // 停止循环提示音
+  pomoStopBeep();
+
   // Stop timer
   clearInterval(pomoState.timerInterval);
-  pomoState.elapsed = Math.floor((Date.now()/1000) - pomoState.startTs);
+
+  // 倒计时结束后：已用时间冻结为目标时间，传 targetSec 而非实际流逝时间
+  var duration;
+  if (pomoState.finished) {
+    pomoState.elapsed = pomoState.targetSec;
+    duration = pomoState.targetSec;
+  } else {
+    pomoState.elapsed = Math.floor((Date.now()/1000) - pomoState.startTs);
+    duration = pomoState.elapsed;
+  }
   pomoUpdateDisplay();
 
   // Save to backend
   await fetch('/api/focus/' + pomoState.sessionId + '/stop', {
     method: 'POST',
     headers: {'Content-Type': 'application/json'},
-    body: JSON.stringify({note: ''})
+    body: JSON.stringify({note: '', duration: duration})
   });
 
   // Reset state
   pomoState.running = false;
   pomoState.paused = false;
+  pomoState.finished = false;
   pomoState.sessionId = null;
   pomoState.startTs = null;
   pomoState.elapsed = 0;
@@ -280,6 +290,9 @@ async function pomoStop() {
 }
 
 async function pomoReset() {
+  // 停止提示音（倒计时结束后可能还在响）
+  pomoStopBeep();
+
   clearInterval(pomoState.timerInterval);
 
   // Delete session if created
@@ -289,6 +302,7 @@ async function pomoReset() {
 
   pomoState.running = false;
   pomoState.paused = false;
+  pomoState.finished = false;
   pomoState.sessionId = null;
   pomoState.startTs = null;
   pomoState.elapsed = 0;
@@ -298,23 +312,38 @@ async function pomoReset() {
   document.getElementById('pomo-active-task').style.display = 'none';
 }
 
-/** 倒计时自动结束时保存记录 */
-async function pomoAutoSave() {
-  if (!pomoState.sessionId) return;
-  try {
-    await fetch('/api/focus/' + pomoState.sessionId + '/stop', {
-      method: 'POST',
-      headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({note: '', duration: pomoState.targetSec})
+/* ─── 倒计时结束循环提示音 ─── */
+
+/** 开始循环播放提示音（每 2 秒一次），直到用户点击"完成" */
+function pomoStartBeep() {
+  pomoStopBeep();
+  pomoBeepOnce();  // 立刻响一声
+  pomoState.beepInterval = setInterval(pomoBeepOnce, 2000);
+
+  // 桌面通知（仅在倒计时首次结束时发一次）
+  if ('Notification' in window && Notification.permission === 'granted') {
+    new Notification('⏱ 专注完成', {
+      body: '倒计时结束，你已专注 ' + (pomoState.targetSec / 60) + ' 分钟！请点击完成按钮',
+      icon: '/static/favicon.ico'
     });
-  } catch (e) {
-    console.error('自动保存专注记录失败:', e);
+  }
+
+  // 手机振动（短-长-短 模式）
+  if (navigator.vibrate) {
+    navigator.vibrate([100, 50, 200]);
   }
 }
 
-/** 浏览器通知 + 声音提醒 */
-function pomoNotify() {
-  // 声音提醒 — 复用 pomoStart 时预创建的 AudioContext
+/** 停止循环提示音 */
+function pomoStopBeep() {
+  if (pomoState.beepInterval) {
+    clearInterval(pomoState.beepInterval);
+    pomoState.beepInterval = null;
+  }
+}
+
+/** 播放一次提示音（三连音 C5→E5→G5） */
+function pomoBeepOnce() {
   try {
     var ctx = pomoState.audioCtx;
     if (!ctx) {
@@ -332,23 +361,10 @@ function pomoNotify() {
     osc.frequency.setValueAtTime(523, ctx.currentTime);
     osc.frequency.setValueAtTime(659, ctx.currentTime + 0.15);
     osc.frequency.setValueAtTime(784, ctx.currentTime + 0.3);
-    gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.5);
+    gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.6);
     osc.start(ctx.currentTime);
-    osc.stop(ctx.currentTime + 0.5);
+    osc.stop(ctx.currentTime + 0.6);
   } catch (e) {}
-
-  // 桌面通知（去掉 silent:true，允许系统提示音）
-  if ('Notification' in window && Notification.permission === 'granted') {
-    new Notification('\u23F1 专注完成', {
-      body: '倒计时结束，你已专注 ' + (pomoState.targetSec / 60) + ' 分钟！',
-      icon: '/static/favicon.ico'
-    });
-  }
-
-  // 手机振动（短-长-短 模式）
-  if (navigator.vibrate) {
-    navigator.vibrate([100, 50, 200]);
-  }
 }
 
 /* ─── Habits Actions ─── */

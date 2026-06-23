@@ -25,7 +25,9 @@ let pomoState = {
   taskText: '',
   mode: 'stopwatch',  // 'stopwatch' | 'countdown'
   targetSec: 1500,    // countdown target (default 25 min)
-  audioCtx: null      // AudioContext 预创建，避免自动播放策略拦截
+  audioCtx: null,     // AudioContext 预创建，避免自动播放策略拦截
+  finished: false,     // 倒计时结束，等待用户手动完成
+  beepInterval: null   // 循环提示音定时器
 };
 
 function dateFromHash() {
