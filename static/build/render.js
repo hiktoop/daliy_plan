@@ -1545,17 +1545,25 @@ async function renderKnowledge() {
   if (active.length === 0) {
     activeList.innerHTML = '<div class="empty-icon">📚</div>还没有需要复习的知识';
   } else {
+    var todayStr2 = _fmt(new Date());
     activeList.innerHTML = active.map(function(r) {
       var round = r.reviewRound + 1;
       var nextIvl = r.interval || 1;
       var nextLabel = round < 6 ? (nextIvl + '天后') : '—';
+      var due = r.nextReview <= todayStr2;
+      var actionHtml;
+      if (due) {
+        actionHtml = '<span class="knowledge-round">第' + round + '轮 · ' + nextLabel + ' · ' + r.nextReview + '</span>' +
+          '<button class="review-btn-mini review-remember" onclick="reviewRemember(\'' + r.id + '\')" title="记得" style="font-size:11px;">✅</button>' +
+          '<button class="review-btn-mini review-forgot" onclick="reviewForgot(\'' + r.id + '\')" title="忘了" style="font-size:11px;">❌</button>';
+      } else {
+        actionHtml = '<span class="knowledge-round" style="color:var(--warn);">第' + round + '轮 · ' + nextLabel + ' · ' + r.nextReview + '（未到期）</span>';
+      }
       return '<div class="knowledge-item">' +
         '<div class="knowledge-item-row">' +
         '<span class="knowledge-text">' + escapeHTML(r.taskText) + '</span>' +
         '<div class="knowledge-item-actions">' +
-        '<span class="knowledge-round">第' + round + '轮 · ' + nextLabel + ' · ' + r.nextReview + '</span>' +
-        '<button class="review-btn-mini review-remember" onclick="reviewRemember(\'' + r.id + '\')" title="记得" style="font-size:11px;">✅</button>' +
-        '<button class="review-btn-mini review-forgot" onclick="reviewForgot(\'' + r.id + '\')" title="忘了" style="font-size:11px;">❌</button>' +
+        actionHtml +
         '<button class="pomo-btn pomo-reset" onclick="deleteReview(\'' + r.id + '\')" style="font-size:11px;padding:4px 10px;margin-left:2px;">删除</button>' +
         '</div></div></div>';
     }).join('');
@@ -1616,6 +1624,7 @@ async function renderKnowledgeOverview() {
     if (!items || items.length === 0) {
       return '<div style="padding:16px;text-align:center;color:var(--text-3);font-size:12px;">暂无</div>';
     }
+    var todayDate = _fmt(new Date());
     return items.map(function(r) {
       var round = r.reviewRound + 1;
       var nextIvl = r.interval || 1;
@@ -1630,12 +1639,20 @@ async function renderKnowledgeOverview() {
       }
       var actionHtml = '';
       if (stage !== 'graduated') {
-        actionHtml =
-          '<div style="margin-top:4px;display:flex;align-items:center;gap:6px;">' +
-            '<span style="font-size:10px;color:var(--text-3);">第' + round + '轮 · ' + nextLabel + ' · ' + r.nextReview + '</span>' +
-            '<button class="review-btn-mini review-remember" onclick="reviewRemember(\'' + r.id + '\')" title="记得">✅</button>' +
-            '<button class="review-btn-mini review-forgot" onclick="reviewForgot(\'' + r.id + '\')" title="忘了">❌</button>' +
-          '</div>';
+        var due = r.nextReview <= todayDate;
+        if (due) {
+          actionHtml =
+            '<div style="margin-top:4px;display:flex;align-items:center;gap:6px;">' +
+              '<span style="font-size:10px;color:var(--text-3);">第' + round + '轮 · ' + nextLabel + ' · ' + r.nextReview + '</span>' +
+              '<button class="review-btn-mini review-remember" onclick="reviewRemember(\'' + r.id + '\')" title="记得">✅</button>' +
+              '<button class="review-btn-mini review-forgot" onclick="reviewForgot(\'' + r.id + '\')" title="忘了">❌</button>' +
+            '</div>';
+        } else {
+          actionHtml =
+            '<div style="margin-top:4px;display:flex;align-items:center;gap:6px;">' +
+              '<span style="font-size:10px;color:var(--warn);">第' + round + '轮 · ' + nextLabel + ' · ' + r.nextReview + '（未到期）</span>' +
+            '</div>';
+        }
       } else {
         actionHtml =
           '<div style="margin-top:4px;font-size:10px;color:var(--accent-text);">🎓 已掌握</div>';

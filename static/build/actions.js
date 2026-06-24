@@ -176,7 +176,14 @@ async function goToday() {
 
 /* ─── Pomodoro Actions ─── */
 
+/* ─── Review Actions ─── */
+
+var _reviewingSet = {};
+
 async function completeReview(reviewId, quality) {
+  // 防重复点击：同一 reviewId 正在处理中
+  if (_reviewingSet[reviewId]) return;
+  _reviewingSet[reviewId] = true;
   try {
     var q = quality || 5;
     var res = await API.markReviewDone(reviewId, q);
@@ -186,8 +193,10 @@ async function completeReview(reviewId, quality) {
       var label = quality === 1 ? '已标记为忘了' : (quality === 3 ? '勉强记得' : '复习完成 ✓');
       showToast(label + ' · 下次：' + res.nextReview + '（' + res.interval + '天后）');
     }
+    _reviewingSet[reviewId] = false;
     await renderToday();
   } catch(e) {
+    _reviewingSet[reviewId] = false;
     showToast('操作失败');
   }
 }

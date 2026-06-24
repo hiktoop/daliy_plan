@@ -165,10 +165,21 @@ def mark_review_done(review_id: str, quality: int = Query(5, ge=0, le=5)):
     quality: 5=完美记得, 3=勉强记得, 1=忘了
     """
     now_dt = date_cls.today()
+    today_str = now_dt.isoformat()
     with get_db() as db:
         row = db.execute("SELECT * FROM reviews WHERE id=?", (review_id,)).fetchone()
         if not row:
             raise HTTPException(status_code=404, detail="Review not found")
+
+        # ① 防止提前复习：今天还没到 scheduled 日期
+        scheduled = date_cls.fromisoformat(row["next_review"])
+        if now_dt < scheduled:
+            raise HTTPException(status_code=400, detail=f"未到复习日期（计划日期：{row['next_review']}）")
+
+        # ② 防止同一天重复点击：last_review 已是今天
+        if row["last_review"] and row["last_review"] == today_str:
+            raise HTTPException(status_code=400, detail="今天已复习过，无需重复操作")
+
         rnd = row["review_round"] + 1
         # Read SM-2 fields (graceful fallback for old rows)
         ef = row["ease_factor"] if "ease_factor" in row.keys() and row["ease_factor"] is not None else 2.5
@@ -187,7 +198,7 @@ def mark_review_done(review_id: str, quality: int = Query(5, ge=0, le=5)):
         db.execute(
             """UPDATE reviews SET review_round=?, last_review=?, next_review=?,
                ease_factor=?, repetitions=?, interval=?, updated_at=? WHERE id=?""",
-            (rnd, now_dt.isoformat(), next_d, round(ef, 4), reps, ivl, _now_ts(), review_id),
+            (rnd, today_str, next_d, round(ef, 4), reps, ivl, _now_ts(), review_id),
         )
     return {"ok": True, "nextReview": next_d, "round": rnd, "interval": ivl}
 
