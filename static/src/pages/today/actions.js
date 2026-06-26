@@ -206,7 +206,7 @@ async function deleteReview(reviewId) {
   try {
     await API.deleteReview(reviewId);
     showToast('已删除');
-    await renderKnowledgeOverview();
+    await renderToday();
   } catch(e) {
     showToast('删除失败');
   }

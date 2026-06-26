@@ -4,16 +4,16 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>每日任务追踪</title>
-<link rel="stylesheet" href="/static/build/style.css?v=36">
+<link rel="stylesheet" href="/static/build/style.css?v=44">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/vditor@3.10.6/dist/index.css">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/vditor@3.10.6/dist/index.min.js"></script>
 <!-- JS modules: loaded in dependency order -->
-<script src="/static/build/app.js?v=36"></script>
-<script src="/static/build/api.js?v=36"></script>
-<script src="/static/build/render.js?v=36"></script>
-<script src="/static/build/actions.js?v=36"></script>
-<script src="/static/build/quotes.js?v=36"></script>
+<script src="/static/build/app.js?v=44"></script>
+<script src="/static/build/api.js?v=44"></script>
+<script src="/static/build/render.js?v=44"></script>
+<script src="/static/build/actions.js?v=44"></script>
+<script src="/static/build/quotes.js?v=44"></script>
 </head>
 <body>
 
@@ -24,12 +24,8 @@
   </div>
   <nav class="nav-tabs">
     <button class="nav-tab active" onclick="switchPage('today')">今日</button>
-    <button class="nav-tab" onclick="switchPage('history')">历史</button>
-    <button class="nav-tab" onclick="switchPage('charts')">图表</button>
-    <button class="nav-tab" onclick="switchPage('pomodoro')">专注</button>
-    <button class="nav-tab" onclick="switchPage('habits')">习惯</button>
-    <button class="nav-tab" onclick="switchPage('knowledge')">知识</button>
-    <button class="nav-tab" onclick="switchPage('diary')">日记</button>
+    <button class="nav-tab" onclick="switchPage('stats')">统计</button>
+    <button class="nav-tab" onclick="switchPage('focus')">专注</button>
   </nav>
 </header>
 
@@ -122,9 +118,11 @@
 </div>
 
 </div>
-<div class="page" id="page-history">
+<div class="page" id="page-stats">
 <div class="main">
-  <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;">
+
+  <!-- ═══════ Section: History ═══════ -->
+  <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;">
     <span class="page-title">📋 历史记录</span>
     <div class="view-toggle" id="history-view-toggle" style="display:flex;border-radius:8px;overflow:hidden;border:1px solid var(--border-md);">
       <button class="view-toggle-btn active" data-view="table" onclick="switchHistoryView('table')">列表</button>
@@ -134,7 +132,7 @@
   </div>
 
   <!-- Table View -->
-  <div class="card" style="padding:0;overflow:hidden;" id="history-table-card">
+  <div class="card" style="padding:0;overflow:hidden;margin-bottom:24px;" id="history-table-card">
     <div style="overflow-x:auto;">
       <table class="history-table" id="history-table">
         <thead>
@@ -155,20 +153,16 @@
   </div>
 
   <!-- Calendar View -->
-  <div class="card" id="history-calendar-card" style="display:none;padding:12px;">
-    <!-- Month navigation -->
+  <div class="card" id="history-calendar-card" style="display:none;padding:12px;margin-bottom:24px;">
     <div class="cal-nav">
       <button class="cal-nav-btn" onclick="calNavMonth(-1)" title="上个月">&#8249;</button>
       <span class="cal-nav-label" id="cal-month-label">2026年6月</span>
       <button class="cal-nav-btn" onclick="calNavMonth(1)" title="下个月">&#8250;</button>
     </div>
-    <!-- Weekday headers -->
     <div class="cal-weekdays">
       <span>一</span><span>二</span><span>三</span><span>四</span><span>五</span><span>六</span><span>日</span>
     </div>
-    <!-- Calendar grid -->
     <div class="cal-grid" id="cal-grid"></div>
-    <!-- Legend -->
     <div class="cal-legend">
       <span class="cal-legend-item"><span class="cal-dot cal-dot-full"></span> 全部完成</span>
       <span class="cal-legend-item"><span class="cal-dot cal-dot-partial"></span> 部分完成</span>
@@ -177,24 +171,65 @@
     </div>
   </div>
 
-  <!-- Calendar tooltip (positioned absolutely) -->
+  <!-- Calendar tooltip -->
   <div class="cal-tooltip" id="cal-tooltip" style="display:none;">
     <div class="cal-tooltip-date" id="cal-tooltip-date"></div>
     <div class="cal-tooltip-list" id="cal-tooltip-list"></div>
   </div>
+
+  <!-- ═══════ Section: Charts ═══════ -->
+  <div class="section-header" style="margin-bottom:16px;">📊 数据可视化</div>
+
+  <div class="card">
+    <div class="card-title">近30天完成率趋势</div>
+    <div class="chart-wrap">
+      <canvas id="chart-trend" role="img" aria-label="近30天每日任务完成率折线图"></canvas>
+    </div>
+  </div>
+  <div class="chart-grid">
+    <div class="card">
+      <div class="card-title">完成状态分布</div>
+      <div class="chart-wrap-sm">
+        <canvas id="chart-status" role="img" aria-label="任务完成状态饼图"></canvas>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">每日任务数量</div>
+      <div class="chart-wrap-sm">
+        <canvas id="chart-count" role="img" aria-label="每日任务数量柱状图"></canvas>
+      </div>
+    </div>
+  </div>
+  <div class="card" style="margin-top:0;">
+    <div class="card-title">综合统计</div>
+    <div class="progress-row" id="global-metrics"></div>
+  </div>
+  <div class="card" style="margin-top:16px;">
+    <div class="card-title">艾宾浩斯遗忘曲线</div>
+    <div class="chart-wrap" style="height:260px;">
+      <canvas id="chart-ebbinghaus" role="img" aria-label="艾宾浩斯遗忘曲线与复习节点"></canvas>
+    </div>
+    <div style="font-size:11px;color:var(--text-3);margin-top:8px;text-align:center;">
+      <span style="color:#a32d2d;">红色虚线</span> = 不复习的遗忘曲线 · 
+      <span style="color:#3b6d11;">绿色实线</span> = 按时复习的记忆保持 · 
+      竖线 = 复习节点（SM-2 动态间隔）
+    </div>
+  </div>
+
 </div>
 
 </div>
-<div class="page" id="page-pomodoro">
-<div class="main pomodoro-main">
+<div class="page" id="page-focus">
+<div class="main">
 
-  <!-- Mode toggle -->
+  <!-- ═══════ Section: Pomodoro ═══════ -->
+  <span class="page-title">⏱ 专注计时</span>
+
   <div class="pomo-mode-bar">
     <button class="pomo-mode-btn active" id="pomo-mode-stopwatch" onclick="pomoSetMode('stopwatch')">正计时</button>
     <button class="pomo-mode-btn" id="pomo-mode-countdown" onclick="pomoSetMode('countdown')">倒计时</button>
   </div>
 
-  <!-- Timer ring + presets row -->
   <div class="pomo-timer-section">
     <div class="pomodoro-ring-wrap">
       <svg class="pomodoro-ring" viewBox="0 0 200 200" id="pomo-svg">
@@ -207,7 +242,6 @@
       <div class="pomodoro-label" id="pomo-label">准备开始</div>
     </div>
 
-    <!-- Countdown presets (hidden for stopwatch mode) -->
     <div class="pomo-presets" id="pomo-presets" style="display:none;">
       <button class="pomo-preset-btn" data-min="15" onclick="pomoSetPreset(15)">15 分</button>
       <button class="pomo-preset-btn active" data-min="25" onclick="pomoSetPreset(25)">25 分</button>
@@ -220,7 +254,6 @@
     </div>
   </div>
 
-  <!-- Controls row -->
   <div class="pomodoro-controls">
     <select class="pomo-select" id="pomo-task-select" onchange="pomoSelectTask()">
       <option value="">-- 不关联任务 --</option>
@@ -236,9 +269,7 @@
     </div>
   </div>
 
-  <!-- Bottom grid: stats + history side by side -->
   <div class="pomo-bottom-grid">
-    <!-- Today stats -->
     <div class="card pomo-stats-card">
       <div class="card-title">今日专注</div>
       <div class="pomo-stats-grid" id="pomo-daily-metrics">
@@ -261,7 +292,6 @@
       </div>
     </div>
 
-    <!-- Session history -->
     <div class="card pomo-history-card">
       <div class="card-title">今日记录</div>
       <div id="pomo-history-wrap">
@@ -282,19 +312,14 @@
     </div>
   </div>
 
-</div>
+  <!-- ═══════ Section: Habits ═══════ -->
+  <div class="section-header" style="margin-top:32px;margin-bottom:16px;">🌱 习惯养成</div>
 
-</div>
-<div class="page" id="page-habits">
-<div class="main">
-  <!-- Top bar: title + add button -->
-  <div style="display:flex;align-items:center;gap:12px;margin-bottom:20px;">
-    <span class="page-title">🌱 习惯养成</span>
+  <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;">
     <span style="font-size:12px;color:var(--text-3);" id="habits-today-label"></span>
     <button class="btn-save" id="btn-add-habit" onclick="showAddHabit()" style="margin-left:auto;margin-top:0;font-size:12px;padding:6px 14px;">+ 新建习惯</button>
   </div>
 
-  <!-- Add habit form (hidden by default) -->
   <div class="card" id="habit-add-card" style="display:none;">
     <div class="card-title">新建习惯</div>
     <div style="display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap;">
@@ -336,116 +361,26 @@
     </div>
   </div>
 
-  <!-- Habit cards grid -->
   <div class="habits-grid" id="habits-grid"></div>
 
-  <!-- Overview stats panel -->
   <div class="card" id="habits-stats" style="display:none;margin-top:12px;padding:12px 16px;"></div>
 
-  <!-- Empty state -->
   <div id="habits-empty" class="empty-state" style="display:none;">
     <div class="empty-icon">🌱</div>
     还没有习惯，点击右上角"新建习惯"开始
   </div>
 
-  <!-- Heatmap -->
   <div class="card" style="margin-top:16px;">
     <div class="card-title">打卡热力图（近 12 周）</div>
     <div class="heatmap-wrap" id="habits-heatmap"></div>
   </div>
-</div>
-
-</div>
-<div class="page" id="page-knowledge">
-<div class="main">
-  <div style="display:flex;align-items:center;gap:12px;margin-bottom:20px;">
-    <span class="page-title">📚 知识总览</span>
-    <span style="font-size:12px;color:var(--text-3);" id="knowledge-overview-stats"></span>
-  </div>
-
-  <!-- Stats row -->
-  <div class="progress-row" id="knowledge-stats-row" style="margin-bottom:16px;"></div>
-
-  <!-- Three columns: learning / reviewing / graduated -->
-  <div class="knowledge-cols" id="knowledge-cols">
-    <!-- 📖 初学 -->
-    <div class="card">
-      <div class="card-title">📖 初学<span id="k-learning-count" style="font-size:11px;color:var(--text-3);margin-left:6px;"></span></div>
-      <div id="k-learning-list"></div>
-    </div>
-    <!-- 🔄 巩固 -->
-    <div class="card">
-      <div class="card-title">🔄 巩固<span id="k-reviewing-count" style="font-size:11px;color:var(--text-3);margin-left:6px;"></span></div>
-      <div id="k-reviewing-list"></div>
-    </div>
-    <!-- 🎓 已毕业 -->
-    <div class="card">
-      <div class="card-title" style="cursor:pointer;" onclick="var el=document.getElementById('k-graduated-list');el.style.display=el.style.display==='none'?'':'none';">
-        🎓 已毕业<span id="k-graduated-count" style="font-size:11px;color:var(--text-3);margin-left:6px;"></span>
-        <span style="font-size:10px;color:var(--text-3);margin-left:auto;">点击折叠</span>
-      </div>
-      <div id="k-graduated-list"></div>
-    </div>
-  </div>
-
-  <!-- Empty state -->
-  <div id="knowledge-empty" class="empty-state" style="display:none;">
-    <div class="empty-icon">📚</div>
-    还没有知识记录<br>
-    <span style="font-size:12px;color:var(--text-3);">在"今日"页面添加知识类型事项，完成复习后会自动出现在这里</span>
-  </div>
-</div>
-
-</div>
-<div class="page" id="page-charts">
-<div class="main">
-  <div class="page-title">📊 数据可视化</div>
-  <div class="card">
-    <div class="card-title">近30天完成率趋势</div>
-    <div class="chart-wrap">
-      <canvas id="chart-trend" role="img" aria-label="近30天每日任务完成率折线图"></canvas>
-    </div>
-  </div>
-  <div class="chart-grid">
-    <div class="card">
-      <div class="card-title">完成状态分布</div>
-      <div class="chart-wrap-sm">
-        <canvas id="chart-status" role="img" aria-label="任务完成状态饼图"></canvas>
-      </div>
-    </div>
-    <div class="card">
-      <div class="card-title">每日任务数量</div>
-      <div class="chart-wrap-sm">
-        <canvas id="chart-count" role="img" aria-label="每日任务数量柱状图"></canvas>
-      </div>
-    </div>
-  </div>
-  <div class="card" style="margin-top:0;">
-    <div class="card-title">综合统计</div>
-    <div class="progress-row" id="global-metrics"></div>
-  </div>
-  <div class="card" style="margin-top:16px;">
-    <div class="card-title">艾宾浩斯遗忘曲线</div>
-    <div class="chart-wrap" style="height:260px;">
-      <canvas id="chart-ebbinghaus" role="img" aria-label="艾宾浩斯遗忘曲线与复习节点"></canvas>
-    </div>
-    <div style="font-size:11px;color:var(--text-3);margin-top:8px;text-align:center;">
-      <span style="color:#a32d2d;">红色虚线</span> = 不复习的遗忘曲线 · 
-      <span style="color:#3b6d11;">绿色实线</span> = 按时复习的记忆保持 · 
-      竖线 = 复习节点（SM-2 动态间隔）
-    </div>
-  </div>
-</div>
 
 </div>
 
-<!-- DIARY -->
-<div class="page" id="page-diary"></div>
+</div>
 
 <script>
 // Boot: render today page on load
 renderToday();
-</script>
-<script src="/static/notebook/dist/assets/notebook.js?v=36"></script>
 </body>
 </html>

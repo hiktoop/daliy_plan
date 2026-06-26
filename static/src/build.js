@@ -12,7 +12,7 @@ const DST = path.join(SRC, '..', 'build');
 if (!fs.existsSync(DST)) fs.mkdirSync(DST, { recursive: true });
 
 // Page order matters — must match nav-tab order in index.html
-const PAGES = ['today', 'history', 'charts', 'pomodoro', 'habits', 'knowledge'];
+const PAGES = ['today', 'stats', 'focus'];
 
 // Utility: read a file, return trimmed string (empty if not found)
 function read(p) {
